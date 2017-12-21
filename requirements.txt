@@ -1,5 +1,6 @@
 numpy
 requests
 scipy
+PIL
 zipfile
 tarfile

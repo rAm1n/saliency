@@ -3,6 +3,7 @@
 
 import json
 from scipy.misc import imread
+from PIL import Image
 import numpy as np
 import zipfile
 import tarfile
@@ -198,6 +199,9 @@ class SaliencyDataset():
 				path = os.path.join(self.directory, img['stimuli'])
 				if os.path.isfile(path):
 					tmp = imread(path)
+					if tmp.ndim != 3:
+						shape = tmp.shape
+						tmp = np.array(Image.fromarray(tmp).convert('RGB').getdata()).reshape(shape + (3,))
 			elif data_type == 'stimuli_path':
 				tmp = os.path.join(self.directory, img['stimuli'])
 			else:
