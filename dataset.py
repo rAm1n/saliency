@@ -2,33 +2,27 @@
 
 
 import json
-import pickle
-import wget
 from scipy.misc import imread
 import numpy as np
 import zipfile
 import tarfile
 import os
-from tqdm import tqdm
 import requests
-
 
 
 
 CONFIG = {
 	'data_path' : os.path.expanduser('~/tmp/saliency/'),
+	'dataset_json' : 'data/dataset.json',
 	'auto_download' : True,
-	'json_directory' : 'http://saliency.raminfahimi.ir/json/'
 }
-
-
-# TODO add len in json and fix code
 
 
 class SaliencyDataset():
 	def __init__(self, name, config=CONFIG):
-		self.name =  name
+		self.name =  name.upper()
 		self.config = config
+		self.sequence = None
 		self._download_or_load()
 
 	def __repr__(self):
@@ -42,49 +36,43 @@ class SaliencyDataset():
 
 	def _download_or_load(self):
 
+
 		try:
-			directory = os.path.join(self.config['data_path'], self.name)
-			self.directory = directory
-			if os.path.isdir(directory):
-				return self._load()
-			os.makedirs(directory)
+			dataset_file = self.config['dataset_json']
+			with open(dataset_file, 'r') as f_handle:
+				data = json.load(f_handle)[self.name]
+			for key, value in data.items():
+				setattr(SaliencyDataset, key, value)
+
+		except KeyError:
+			print('{0} has not been converted yet'.format(self.name))
+
+		except Exception,x:
+			print(x)
+			print('something went wrong')
+			exit()
+
+		try:
+			self.directory = os.path.join(self.config['data_path'], self.name)
+			if not os.path.isdir(self.directory):
+					os.makedirs(self.directory)
 		except OSError as e:
 				raise e
 
-		# Starting Download
-		# for url in URLs[self.name]:
-		# 	self._download(url, unzip=True)
-		pkl_url  = self.config['json_directory'] + '{0}.pkl'.format(self.name.upper()) 
+		self._load('data')
 
-		self._download(pkl_url)
-
-
-
-		pkl_directory = os.path.join(self.config['data_path'], self.name)
-		try:
-			path = os.path.join(pkl_directory, '{0}.pkl'.format(self.name))
-			f = open(path, 'rb')
-			data = pickle.load(f)#, encoding='latin1')
-			for url in data['url']:
-				self._download(url, extract=True)
-			f.close()
-		except Exception as x:
-			print(x)
-
-		#loading data
-		self._load()
-
-
-	def _download(self, url, extract=False):
+	def _download(self, url, path, extract=False):
 		try:
 			print('downloading - {0}'.format(url))
 			def save_response_content(response, destination):
 				CHUNK_SIZE = 32768
-				with open(destination, "wb") as f:
-					for chunk in response.iter_content(CHUNK_SIZE):
-						if chunk: # filter out keep-alive new chunks
-							f.write(chunk)
-
+				try:
+					with open(destination, "wb") as f:
+						for chunk in response.iter_content(CHUNK_SIZE):
+							if chunk: # filter out keep-alive new chunks
+								f.write(chunk)
+				except Exception,x:
+					print(x)
 			if ("drive.google.com" in url):
 				def get_confirm_token(response):
 					for key, value in response.cookies.items():
@@ -93,6 +81,7 @@ class SaliencyDataset():
 					return None
 
 				filename = url.split('=')[-1] + '.zip'
+				file_extension = 'zip'
 				destination = os.path.join(self.config['data_path'], self.name, filename)
 
 				session = requests.Session()
@@ -101,63 +90,68 @@ class SaliencyDataset():
 
 				if token:
 					params = { 'confirm' : token }
-					response = session.get(url, params = params, stream = True)    
-
+					response = session.get(url, params = params, stream = True)
 			else:
-				filename = url.split('/')[-1]
-				destination = os.path.join(self.config['data_path'], self.name, filename)
-
+				headers = {'user-agent': 'Wget/1.16 (linux-gnu)'}
 				session = requests.Session()
-				response = session.get(url, stream = True)
-				# wget.download(url, destination)
+				response = session.get(url, stream = True, headers=headers)
+
+				filename = url.split('/')[-1]
+				file_extension = filename.split('.')[-1]
+				destination = os.path.join(path, filename)
 
 			save_response_content(response, destination)
 
-			if extract:
-				directory = os.path.dirname(destination)
-				_ , file_extension = os.path.splitext(destination)
-				print(destination, file_extension, directory)
-				if file_extension == '.zip':
-					zip_ref = zipfile.ZipFile(destination, 'r')
-					zip_ref.extractall(directory)
-					zip_ref.close()
-				else:
-					tar = tarfile.open(destination, 'r')
-					tar.extractall(directory)
-					tar.close()
+			if file_extension == 'zip':
+				zip_ref = zipfile.ZipFile(destination, 'r')
+				zip_ref.extractall(path)
+				zip_ref.close()
+				os.remove(destination)
+			elif file_extension == 'tgz':
+				tar = tarfile.open(destination, 'r')
+				tar.extractall(path)
+				tar.close()
 				os.remove(destination)
 
 		except Exception as x:
 			print(x)
-			directory = os.path.dirname(destination)
-			os.rmdir(directory)
+			os.rmdir(path)
 
 
-	def _load(self):
-		pkl_directory = os.path.join(self.config['data_path'], self.name)
+	def _load(self, key):
 		try:
-			path = os.path.join(pkl_directory, '{0}.pkl'.format(self.name))
-			f = open(path, 'rb')
-			data = pickle.load(f)#, encoding='latin1')
-			for key,value in data.items():
-				setattr(SaliencyDataset, key, value)
-			# pre-processing data
-			self.len = len(data)
+			if key not in self.url:
+				key = 'data'
+
+			sub_dir = os.path.join(self.directory, key)
+			if not os.path.isdir(sub_dir): # download
+				try:
+					os.makedirs(sub_dir)
+					self._download(self.url[key], sub_dir)
+				except Exception,x:
+					print(x)
+
+			if (key == 'sequence') and ( self.sequence is None) :
+				npz_file = os.path.join(sub_dir, '{0}.npz'.format(self.name))
+				with open(npz_file, 'r') as f_handle:
+					self.sequence = np.load(f_handle)
+
 		except Exception as x:
 			print(x)
 
 	def get(self, data_type, **kargs):
 		result = list()
-		for img in tqdm(self.data):
+		for idx, img in enumerate(self.data):
 			if data_type=='sequence':
+				self._load('sequence')
 				tmp = list()
-				for user in img['sequence']:
+				for user in self.sequence[idx]:
 					user = np.array(user)
 					if 'percentile' in kargs:
 						if kargs['percentile']:
 							if(user.shape)[0] == 0:
 								continue
-							_sample = user[:,:2] / self.size
+							_sample = user[:,:2] / self.img_size
 							user = np.concatenate((_sample, user[:,2:]), axis=1)
 					if 'modify' in kargs:
 						if kargs['modify']== 'fix' :
@@ -165,8 +159,8 @@ class SaliencyDataset():
 								if kargs['percentile']:
 									mask_greater = _sample > 1.0
 									mask_smaller = _sample < 0.0
-									_sample[mask_greater] = 0.999999
-									_sample[mask_smaller] = 0.000001
+									_sample[mask_greater] = (1.0 - np.finfo(float).eps)
+									_sample[mask_smaller] = np.finfo(float).eps
 									user = np.concatenate((_sample, user[:,2:]), axis=1)
 								else:
 									# TODO
@@ -177,10 +171,10 @@ class SaliencyDataset():
 						elif kargs['modify'] == 'remove':
 							if 'percentile' in kargs:
 								if kargs['percentile']:
-									user = user[user[:,0]<=0.99999, :]
-									user = user[user[:,0]>=0.00001, :]
-									user = user[user[:,1]<=0.99999, :]
-									user = user[user[:,1]>=0.00001, :]
+									user = user[user[:,0]<=(1 - np.finfo(float).eps), :]
+									user = user[user[:,0]>=(np.finfo(float).eps), :]
+									user = user[user[:,1]<=(1-np.finfo(float).eps), :]
+									user = user[user[:,1]>=(np.finfo(float).eps), :]
 								else:
 									# TODO
 									print('fix was ignored, only works in percentile mode.')
@@ -189,20 +183,16 @@ class SaliencyDataset():
 								print('fix was ignored, only works in percentile mode.')
 					tmp.append(user)
 				tmp = np.array(tmp)
-					# else:
-					# 	tmp = np.array([np.array(user) for user in img['sequence']])
 
 			elif data_type =='heatmap':
+				self._load('heatmap')
 				path = os.path.join(self.directory, img['heatmap'])
-				print path
 				if os.path.isfile(path):
 					tmp = imread(path)
-				else:
-					tmp = np.fromstring( img['heatmap'].decode('base64'), \
-						dtype='int8').reshape(self.size)
-	
+
 			elif data_type == 'heatmap_path':
-							tmp = os.path.join(self.directory, img['heatmap'])
+				self._load('heatmap')
+				tmp = os.path.join(self.directory, img['heatmap'])
 
 			elif data_type =='stimuli':
 				path = os.path.join(self.directory, img['stimuli'])
