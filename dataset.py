@@ -14,7 +14,7 @@ import requests
 
 CONFIG = {
 	'data_path' : os.path.expanduser('~/tmp/saliency/'),
-	'dataset_json' : 'data/dataset.json',
+	'dataset_json' : os.path.join(os.path.dirname(__file__), 'data/dataset.json'),
 	'auto_download' : True,
 }
 
