@@ -134,7 +134,7 @@ class SaliencyDataset():
 
 			if (key == 'sequence') and ( self.sequence is None) :
 				npz_file = os.path.join(sub_dir, '{0}.npz'.format(self.name))
-				with open(npz_file, 'r') as f_handle:
+				with open(npz_file, 'rb') as f_handle:
 					self.sequence = np.load(f_handle)
 
 		except Exception as x:
