@@ -1,7 +1,28 @@
 
+import sys
+
+
 import numpy as np
 from scipy.misc import imresize
 from scipy.stats import entropy
+from scipy.spatial.distance import directed_hausdorff, euclidean
+from fastdtw import fastdtw
+import editdistance
+
+try:
+	import matlab
+	import matlab.engine
+except ImportError:
+	print("some function won't work without matlab & matlab API installed")
+
+
+def make_engine():
+	try:
+		eng = matlab.engine.start_matlab()
+		eng.cd('metrics/MultiMatchToolbox/')
+	except Exception as e:
+		print(e)
+		return
 
 
 """
@@ -11,7 +32,6 @@ If you're using this code, please don't forget to cite the original code
 as mentioned in each function doc.
 
 """
-
 
 def NSS(saliency_map, fixation_map):
 	""""
@@ -121,40 +141,74 @@ def KLdiv(saliency_map , fixation_map):
 
 
 
-def AUC(saliency_map, fixation_map, step_size=.01, Nrand=100000):
+# def AUC(saliency_map, fixation_map, step_size=.01, Nrand=100000):
+# 	"""
+# 		please cite:  https://github.com/NUS-VIP/salicon-evaluation
+
+# 		Calculates AUC score.
+# 		:param salinecy_map : predicted saliency map
+# 		:param fixation_map : ground truth saliency map.
+# 		:return score: int : score
+
+# 	"""
+# 	saliency_map = fixation_map - np.min(fixation_map)
+# 	if np.max(saliency_map) > 0:
+# 		saliency_map = saliency_map / np.max(saliency_map)
+
+# 	S = saliency_map.reshape(-1)
+# 	Sth = np.asarray([ saliency_map[y-1][x-1] for y,x in saliency_map ])
+
+# 	Nfixations = len(saliency_map)
+# 	Npixels = len(S)
+
+# 	# sal map values at random locations
+# 	randfix = S[np.random.randint(Npixels, size=Nrand)]
+
+# 	allthreshes = np.arange(0,np.max(np.concatenate((Sth, randfix), axis=0)),step_size)
+# 	allthreshes = allthreshes[::-1]
+# 	tp = np.zeros(len(allthreshes)+2)
+# 	fp = np.zeros(len(allthreshes)+2)
+# 	tp[-1]=1.0
+# 	fp[-1]=1.0
+# 	tp[1:-1]=[float(np.sum(Sth >= thresh))/Nfixations for thresh in allthreshes]
+# 	fp[1:-1]=[float(np.sum(randfix >= thresh))/Nrand for thresh in allthreshes]
+
+# 	score = np.trapz(tp,fp)
+# 	return score
+
+def AUC(salMap, fixMap):
+	"""Computes AUC for given saliency map 'salMap' and given
+	fixation map 'fixMap'
 	"""
-		please cite:  https://github.com/NUS-VIP/salicon-evaluation
+	def area_under_curve(predicted, actual, labelset):
+		def roc_curve(predicted, actual, cls):
+			si = np.argsort(-predicted)
+			tp = np.cumsum(np.single(actual[si]==cls))
+			fp = np.cumsum(np.single(actual[si]!=cls))
+			tp = tp/np.sum(actual==cls)
+			fp = fp/np.sum(actual!=cls)
+			tp = np.hstack((0.0, tp, 1.0))
+			fp = np.hstack((0.0, fp, 1.0))
+			return tp, fp
+		def auc_from_roc(tp, fp):
+			h = np.diff(fp)
+			auc = np.sum(h*(tp[1:]+tp[:-1]))/2.0
+			return auc
 
-		Calculates AUC score.
-		:param salinecy_map : predicted saliency map
-		:param fixation_map : ground truth saliency map.
-		:return score: int : score
+		tp, fp = roc_curve(predicted, actual, np.max(labelset))
+		auc = auc_from_roc(tp, fp)
+		return auc
 
-	"""
-	saliency_map = fixation_map - np.min(fixation_map)
-	if np.max(saliency_map) > 0:
-		saliency_map = saliency_map / np.max(saliency_map)
+	fixMap = (fixMap>0.7).astype(int)
+	salShape = salMap.shape
+	fixShape = fixMap.shape
 
-	S = saliency_map.reshape(-1)
-	Sth = np.asarray([ saliency_map[y-1][x-1] for y,x in saliency_map ])
+	predicted = salMap.reshape(salShape[0]*salShape[1], -1, order='F').flatten()
+	actual = fixMap.reshape(fixShape[0]*fixShape[1], -1, order='F').flatten()
+	labelset = np.arange(2)
 
-	Nfixations = len(saliency_map)
-	Npixels = len(S)
+	return area_under_curve(predicted, actual, labelset)
 
-	# sal map values at random locations
-	randfix = S[np.random.randint(Npixels, size=Nrand)]
-
-	allthreshes = np.arange(0,np.max(np.concatenate((Sth, randfix), axis=0)),step_size)
-	allthreshes = allthreshes[::-1]
-	tp = np.zeros(len(allthreshes)+2)
-	fp = np.zeros(len(allthreshes)+2)
-	tp[-1]=1.0
-	fp[-1]=1.0
-	tp[1:-1]=[float(np.sum(Sth >= thresh))/Nfixations for thresh in allthreshes]
-	fp[1:-1]=[float(np.sum(randfix >= thresh))/Nrand for thresh in allthreshes]
-
-	score = np.trapz(tp,fp)
-	return score
 
 
 def SAUC(saliency_map, fixation_map, shuf_map=np.zeros((480,640)), step_size=.01):
@@ -195,3 +249,110 @@ def SAUC(saliency_map, fixation_map, shuf_map=np.zeros((480,640)), step_size=.01
 
 	score = np.trapz(tp,fp)
 	return scrore
+
+
+
+def hausdorff_distance(P, Q):
+	if isinstance(P, np.ndarray):
+		P = np.array(P, dtype=np.float32)
+	elif P.dtype != np.float32:
+		P = P.astype(np.float32)
+
+	if isinstance(Q, np.ndarray):
+		Q = np.array(Q, dtype=np.float32)
+	elif Q.dtype != np.float32:
+		Q = Q.astype(np.float32)
+
+	return max(directed_hausdorff(P, Q)[0], directed_hausdorff(Q, P)[0])
+
+def frechet_distsance(P, Q):
+	""" Computes the discrete frechet distance between two polygonal lines
+	Algorithm: http://www.kr.tuwien.ac.at/staff/eiter/et-archive/cdtr9464.pdf
+	P and Q are arrays of 2-element arrays (points)
+	"""
+	if isinstance(P, np.ndarray):
+		P = np.array(P, dtPype=np.float32)
+	elif P.dtype != np.float32:
+		P = P.astype(np.float32)
+
+	if isinstance(Q, np.ndarray):
+		Q = np.array(Q, dtype=np.float32)
+	elif Q.dtype != np.float32:
+		Q = Q.astype(np.float32)
+
+	def euc_dist(pt1,pt2):
+		return np.sqrt((pt2[0]-pt1[0])*(pt2[0]-pt1[0])+(pt2[1]-pt1[1])*(pt2[1]-pt1[1]))
+
+	def _c(ca,i,j,P,Q):
+		if ca[i,j] > -1:
+			return ca[i,j]
+		elif i == 0 and j == 0:
+			ca[i,j] = euc_dist(P[0],Q[0])
+		elif i > 0 and j == 0:
+			ca[i,j] = max(_c(ca,i-1,0,P,Q),euc_dist(P[i],Q[0]))
+		elif i == 0 and j > 0:
+			ca[i,j] = max(_c(ca,0,j-1,P,Q),euc_dist(P[0],Q[j]))
+		elif i > 0 and j > 0:
+			ca[i,j] = max(
+						min(_c(ca,i-1,j,P,Q), _c(ca,i-1,j-1,P,Q), _c(ca,i,j-1,P,Q)),
+							euc_dist(P[i],Q[j]))
+		else:
+			ca[i,j] = float("inf")
+		return ca[i,j]
+	ca = np.ones((len(P),len(Q)))
+	ca = np.multiply(ca,-1)
+	return _c(ca,len(P)-1,len(Q)-1,P,Q)
+
+
+
+def levenshtein_distance(P,Q, height, width, Xbins=12, Ybins = 8):
+	"""
+		Levenshtein distance
+	"""
+	def _scanpath_to_string(scanpath, height, width, Xbins, Ybins):
+		height_step, width_step = height//Ybins, width//Xbins
+		string = ''
+		for i in range(scanpath.shape[0]):
+			fixation = scanpath[i].astype(np.int32)
+			corrs_x = chr(65 + fixation[1]//height_step)
+			corrs_y = chr(97 + fixation[0]//width_step)
+			string += (corrs_x + corrs_y)
+		return string
+
+	str_1 = _scanpath_to_string(P, height, width, Xbins, Ybins)
+	str_2 = _scanpath_to_string(Q, height, width, Xbins, Ybins)
+
+	return editdistance.eval(str_1, str_2)
+
+
+
+def DTW(P, Q):
+	return fastdtw(P, Q, dist=euclidean)
+
+
+
+def MultiMatch(matlab_engine, P, Q, check=False):
+	"""
+		works only if you have matlab & matlab API installed
+
+		cd MATLAB_ROOT/extern/engines/python/
+		sudo python setup.py install
+
+	"""
+	try:
+		if 'matlab' not in sys.modules:
+			print('This function requires MATLAB API installed.\
+					cd MATLAB_ROOT/extern/engines/python/ \
+					sudo python setup.py install')
+			return
+		P = matlab.double(P.tolist())
+		Q = matlab.double(Q.tolist())
+		# if (check) and ('metrics/MultiMatchToolbox' not in eng.pwd()):
+		# 	eng.cd('metrics/MultiMatchToolbox/')
+		return matlab_engine.doComparison(P,Q)
+	except Exception as e:
+		print(e)
+		return
+
+
+

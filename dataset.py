@@ -48,7 +48,7 @@ class SaliencyDataset():
 		except KeyError:
 			print('{0} has not been converted yet'.format(self.name))
 
-		except Exception,x:
+		except Exception as x:
 			print(x)
 			print('something went wrong')
 			exit()
@@ -72,7 +72,7 @@ class SaliencyDataset():
 						for chunk in response.iter_content(CHUNK_SIZE):
 							if chunk: # filter out keep-alive new chunks
 								f.write(chunk)
-				except Exception,x:
+				except Exception as x:
 					print(x)
 			if ("drive.google.com" in url):
 				def get_confirm_token(response):
@@ -129,7 +129,7 @@ class SaliencyDataset():
 				try:
 					os.makedirs(sub_dir)
 					self._download(self.url[key], sub_dir)
-				except Exception,x:
+				except Exception as x:
 					print(x)
 
 			if (key == 'sequence') and ( self.sequence is None) :
@@ -213,6 +213,3 @@ class SaliencyDataset():
 
 		result = np.asarray(result)
 		return result
-
-
-
