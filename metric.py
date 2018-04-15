@@ -17,9 +17,17 @@ except ImportError:
 
 
 def make_engine():
+	"""
+			works only if you have matlab & matlab API installed
+
+				cd MATLAB_ROOT/extern/engines/python/
+				sudo python setup.py install
+	"""
+
 	try:
 		eng = matlab.engine.start_matlab()
 		eng.cd('metrics/MultiMatchToolbox/')
+		return eng
 	except Exception as e:
 		print(e)
 		return
@@ -141,41 +149,6 @@ def KLdiv(saliency_map , fixation_map):
 
 
 
-# def AUC(saliency_map, fixation_map, step_size=.01, Nrand=100000):
-# 	"""
-# 		please cite:  https://github.com/NUS-VIP/salicon-evaluation
-
-# 		Calculates AUC score.
-# 		:param salinecy_map : predicted saliency map
-# 		:param fixation_map : ground truth saliency map.
-# 		:return score: int : score
-
-# 	"""
-# 	saliency_map = fixation_map - np.min(fixation_map)
-# 	if np.max(saliency_map) > 0:
-# 		saliency_map = saliency_map / np.max(saliency_map)
-
-# 	S = saliency_map.reshape(-1)
-# 	Sth = np.asarray([ saliency_map[y-1][x-1] for y,x in saliency_map ])
-
-# 	Nfixations = len(saliency_map)
-# 	Npixels = len(S)
-
-# 	# sal map values at random locations
-# 	randfix = S[np.random.randint(Npixels, size=Nrand)]
-
-# 	allthreshes = np.arange(0,np.max(np.concatenate((Sth, randfix), axis=0)),step_size)
-# 	allthreshes = allthreshes[::-1]
-# 	tp = np.zeros(len(allthreshes)+2)
-# 	fp = np.zeros(len(allthreshes)+2)
-# 	tp[-1]=1.0
-# 	fp[-1]=1.0
-# 	tp[1:-1]=[float(np.sum(Sth >= thresh))/Nfixations for thresh in allthreshes]
-# 	fp[1:-1]=[float(np.sum(randfix >= thresh))/Nrand for thresh in allthreshes]
-
-# 	score = np.trapz(tp,fp)
-# 	return score
-
 def AUC(salMap, fixMap):
 	"""Computes AUC for given saliency map 'salMap' and given
 	fixation map 'fixMap'
@@ -265,13 +238,13 @@ def hausdorff_distance(P, Q):
 
 	return max(directed_hausdorff(P, Q)[0], directed_hausdorff(Q, P)[0])
 
-def frechet_distsance(P, Q):
+def frechet_distance(P, Q):
 	""" Computes the discrete frechet distance between two polygonal lines
 	Algorithm: http://www.kr.tuwien.ac.at/staff/eiter/et-archive/cdtr9464.pdf
 	P and Q are arrays of 2-element arrays (points)
 	"""
 	if isinstance(P, np.ndarray):
-		P = np.array(P, dtPype=np.float32)
+		P = np.array(P, dtype=np.float32)
 	elif P.dtype != np.float32:
 		P = P.astype(np.float32)
 
@@ -335,8 +308,16 @@ def MultiMatch(matlab_engine, P, Q, check=False):
 	"""
 		works only if you have matlab & matlab API installed
 
-		cd MATLAB_ROOT/extern/engines/python/
-		sudo python setup.py install
+		1 )
+			cd MATLAB_ROOT/extern/engines/python/
+			sudo python setup.py install
+		2 )
+			Please download MultiMatch from the following link and
+			extract it in  metric directory
+
+			wget http://dev.humlab.lu.se/www-transfer/people/marcus-nystrom/MultiMatchToolbox.zip
+			unzip MultiMatchToolbox.zip -d metrics && rm MultiMatchToolbox.zip
+
 
 	"""
 	try:
