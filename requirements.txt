@@ -1,6 +1,7 @@
 numpy
 requests
 scipy
-PIL
-zipfile
-tarfile
+Pillow
+fastdtw
+editdistance
+
