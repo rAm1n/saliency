@@ -9,9 +9,11 @@ from scipy.spatial.distance import directed_hausdorff, euclidean
 from fastdtw import fastdtw
 import editdistance
 
+
 try:
 	import matlab
 	import matlab.engine
+	from io import StringIO
 except ImportError:
 	print("some function won't work without matlab & matlab API installed")
 
@@ -300,7 +302,8 @@ def levenshtein_distance(P,Q, height, width, Xbins=12, Ybins = 8):
 
 
 def DTW(P, Q):
-	return fastdtw(P, Q, dist=euclidean)
+	dist, _ =  fastdtw(P, Q, dist=euclidean)
+	return dist
 
 
 
@@ -326,11 +329,17 @@ def MultiMatch(matlab_engine, P, Q, check=False):
 					cd MATLAB_ROOT/extern/engines/python/ \
 					sudo python setup.py install')
 			return
+		if P.shape[1] == 2:
+			P = np.hstack([P,  np.random.rand(P.shape[0],1)])
+			Q = np.hstack([Q,  np.random.rand(Q.shape[0],1)])
+
 		P = matlab.double(P.tolist())
 		Q = matlab.double(Q.tolist())
 		# if (check) and ('metrics/MultiMatchToolbox' not in eng.pwd()):
 		# 	eng.cd('metrics/MultiMatchToolbox/')
-		return matlab_engine.doComparison(P,Q)
+
+		result = matlab_engine.doComparison(P,Q, stdout=StringIO())
+		return np.array(result).squeeze()
 	except Exception as e:
 		print(e)
 		return

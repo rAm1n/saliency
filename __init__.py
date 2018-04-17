@@ -1,3 +1,3 @@
-__all__=['metric', 'dataset']
-from saliency.metric import * 
+__all__=['metrics', 'dataset']
+from saliency.metrics import * 
 from saliency.dataset import *
