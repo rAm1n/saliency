@@ -227,7 +227,7 @@ def SAUC(saliency_map, fixation_map, shuf_map=np.zeros((480,640)), step_size=.01
 
 
 
-def hausdorff_distance(P, Q):
+def hausdorff_distance(P, Q, **kwargs):
 	if isinstance(P, np.ndarray):
 		P = np.array(P, dtype=np.float32)
 	elif P.dtype != np.float32:
@@ -240,7 +240,7 @@ def hausdorff_distance(P, Q):
 
 	return max(directed_hausdorff(P, Q)[0], directed_hausdorff(Q, P)[0])
 
-def frechet_distance(P, Q):
+def frechet_distance(P, Q, **kwargs):
 	""" Computes the discrete frechet distance between two polygonal lines
 	Algorithm: http://www.kr.tuwien.ac.at/staff/eiter/et-archive/cdtr9464.pdf
 	P and Q are arrays of 2-element arrays (points)
@@ -280,7 +280,7 @@ def frechet_distance(P, Q):
 
 
 
-def levenshtein_distance(P,Q, height, width, Xbins=12, Ybins = 8):
+def levenshtein_distance(P,Q, height, width, Xbins=12, Ybins = 8, **kwargs):
 	"""
 		Levenshtein distance
 	"""
@@ -301,13 +301,13 @@ def levenshtein_distance(P,Q, height, width, Xbins=12, Ybins = 8):
 
 
 
-def DTW(P, Q):
+def DTW(P, Q, **kwargs):
 	dist, _ =  fastdtw(P, Q, dist=euclidean)
 	return dist
 
 
 
-def MultiMatch(matlab_engine, P, Q, check=False):
+def MultiMatch(matlab_engine, P, Q, check=False, **kwargs):
 	"""
 		works only if you have matlab & matlab API installed
 
