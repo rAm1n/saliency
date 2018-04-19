@@ -307,7 +307,7 @@ def DTW(P, Q, **kwargs):
 
 
 
-def MultiMatch(matlab_engine, P, Q, check=False, **kwargs):
+def MultiMatch(matlab_engine, P, Q, height, width, check=False, **kwargs):
 	"""
 		works only if you have matlab & matlab API installed
 
@@ -329,6 +329,7 @@ def MultiMatch(matlab_engine, P, Q, check=False, **kwargs):
 					cd MATLAB_ROOT/extern/engines/python/ \
 					sudo python setup.py install')
 			return
+
 		if P.shape[1] == 2:
 			P = np.hstack([P,  np.random.rand(P.shape[0],1)])
 			Q = np.hstack([Q,  np.random.rand(Q.shape[0],1)])
@@ -337,12 +338,16 @@ def MultiMatch(matlab_engine, P, Q, check=False, **kwargs):
 		Q = matlab.double(Q.tolist())
 		# if (check) and ('metrics/MultiMatchToolbox' not in eng.pwd()):
 		# 	eng.cd('metrics/MultiMatchToolbox/')
+		# print(P,Q)
 
-		result = matlab_engine.doComparison(P,Q, stdout=StringIO())
-		return np.array(result).squeeze()
+		size = matlab.double([width, height])
+
+		return matlab_engine.doComparison(P,Q, size, stdout=StringIO())
+		# return np.array(result).squeeze()
 	except Exception as e:
 		print(e)
-		return
+		return 
+
 
 
 
