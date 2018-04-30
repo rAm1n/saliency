@@ -1,13 +1,18 @@
 
 import sys
+import os
 
 
 import numpy as np
 from scipy.misc import imresize
 from scipy.stats import entropy
 from scipy.spatial.distance import directed_hausdorff, euclidean
+import scipy.io as sio
+
 from fastdtw import fastdtw
 import editdistance
+import requests, zipfile, io
+
 
 
 try:
@@ -28,7 +33,29 @@ def make_engine():
 
 	try:
 		eng = matlab.engine.start_matlab()
-		eng.cd('metrics/MultiMatchToolbox/')
+
+		# downloading ScanMatch if it doesn't exist
+		sm_path = 'matlab/ScanMatch/'
+		mm_path = 'matlab/MultiMatchToolbox/'
+		if not os.path.isdir(sm_path):
+			os.makedirs(sm_path)
+			url = 'https://seis.bristol.ac.uk/~psidg/ScanMatch/ScanMatch.zip'
+			print("downloading MultiMatchToolBox from the authers' website")
+			r = requests.get(url, stream=True)
+			z = zipfile.ZipFile(io.BytesIO(r.content))
+			z.extractall(sm_path)
+
+		if not os.path.isdir(mm_path):
+			os.makedirs(mm_path)
+			url = 'http://dev.humlab.lu.se/www-transfer/people/marcus-nystrom/MultiMatchToolbox.zip'
+			print("downloading MultiMatchToolBox from the authers' website")
+			r = requests.get(url, stream=True)
+			z = zipfile.ZipFile(io.BytesIO(r.content))
+			z.extractall('matlab/')
+
+		eng.addpath(mm_path)
+		eng.cd(sm_path)
+
 		return eng
 	except Exception as e:
 		print(e)
@@ -226,6 +253,22 @@ def SAUC(saliency_map, fixation_map, shuf_map=np.zeros((480,640)), step_size=.01
 	return scrore
 
 
+def euclidean_distance(P,Q, **kwargs):
+	if isinstance(P, np.ndarray):
+		P = np.array(P, dtype=np.float32)
+	elif P.dtype != np.float32:
+		P = P.astype(np.float32)
+
+	if isinstance(Q, np.ndarray):
+		Q = np.array(Q, dtype=np.float32)
+	elif Q.dtype != np.float32:
+		Q = Q.astype(np.float32)
+
+	if P.shape == Q.shape:
+		return np.sqrt(np.sum((P-Q)**2))
+	return False
+
+
 
 def hausdorff_distance(P, Q, **kwargs):
 	if isinstance(P, np.ndarray):
@@ -285,6 +328,15 @@ def levenshtein_distance(P,Q, height, width, Xbins=12, Ybins = 8, **kwargs):
 		Levenshtein distance
 	"""
 	def _scanpath_to_string(scanpath, height, width, Xbins, Ybins):
+		"""
+				a b c d ...
+			A
+			B
+			C
+			D
+
+			returns Aa
+		"""
 		height_step, width_step = height//Ybins, width//Xbins
 		string = ''
 		for i in range(scanpath.shape[0]):
@@ -306,6 +358,76 @@ def DTW(P, Q, **kwargs):
 	return dist
 
 
+def time_delay_embedding_distance(
+		P,
+		Q,
+
+		# options
+		k=3,  # time-embedding vector dimension
+		distance_mode='Mean', **kwargs
+		):
+
+	"""
+		code reference:
+			https://github.com/dariozanca/FixaTons/
+			https://arxiv.org/abs/1802.02534
+
+		metric: Simulating Human Saccadic Scanpaths on Natural Images.
+				 wei wang etal.
+	"""
+
+	# P and Q can have different lenghts
+	# They are list of fixations, that is couple of coordinates
+	# k must be shorter than both lists lenghts
+
+	# we check for k be smaller or equal then the lenghts of the two input scanpaths
+	if len(P) < k or len(Q) < k:
+		print('ERROR: Too large value for the time-embedding vector dimension')
+		return False
+
+	# create time-embedding vectors for both scanpaths
+
+	P_vectors = []
+	for i in np.arange(0, len(P) - k + 1):
+		P_vectors.append(P[i:i + k])
+
+	Q_vectors = []
+	for i in np.arange(0, len(Q) - k + 1):
+		Q_vectors.append(Q[i:i + k])
+
+	# in the following cicles, for each k-vector from the simulated scanpath
+	# we look for the k-vector from humans, the one of minumum distance
+	# and we save the value of such a distance, divided by k
+
+	distances = []
+
+	for s_k_vec in Q_vectors:
+
+		# find human k-vec of minimum distance
+
+		norms = []
+
+		for h_k_vec in P_vectors:
+			d = np.linalg.norm(euclidean_distance(s_k_vec, h_k_vec))
+			norms.append(d)
+
+		distances.append(min(norms) / k)
+
+	# at this point, the list "distances" contains the value of
+	# minumum distance for each simulated k-vec
+	# according to the distance_mode, here we compute the similarity
+	# between the two scanpaths.
+
+	if distance_mode == 'Mean':
+		return sum(distances) / len(distances)
+	elif distance_mode == 'Hausdorff':
+		return max(distances)
+	else:
+		print('ERROR: distance mode not defined.')
+		return False
+
+
+
 
 def MultiMatch(matlab_engine, P, Q, height, width, check=False, **kwargs):
 	"""
@@ -314,13 +436,6 @@ def MultiMatch(matlab_engine, P, Q, height, width, check=False, **kwargs):
 		1 )
 			cd MATLAB_ROOT/extern/engines/python/
 			sudo python setup.py install
-		2 )
-			Please download MultiMatch from the following link and
-			extract it in  metric directory
-
-			wget http://dev.humlab.lu.se/www-transfer/people/marcus-nystrom/MultiMatchToolbox.zip
-			unzip MultiMatchToolbox.zip -d metrics && rm MultiMatchToolbox.zip
-
 
 	"""
 	try:
@@ -346,8 +461,75 @@ def MultiMatch(matlab_engine, P, Q, height, width, check=False, **kwargs):
 		# return np.array(result).squeeze()
 	except Exception as e:
 		print(e)
-		return 
+		return
+
+def ScanMatch(matlab_engine, P,Q, height, width, Xbins=12, Ybins = 8,
+				ScanMatchInfo='ScanMatchInfo_OSIE.mat', **kwargs):
+	"""
+		ScanMatch
+		You need to creat ScanMatchInfo file before hand in the matlab yourself.
+
+		for more information have look at:
+			https://seis.bristol.ac.uk/~psidg/ScanMatch/
+
+	"""
 
 
+	def _load_scanmatch_info(matlab_engine, ScanMatchInfo):
+		try:
+			matlab_engine.load(ScanMatchInfo, nargout=0)
+			return True
+
+		except Exception as e:
+			print(e)
+			return False
+
+	def _scanpath_to_string(scanpath, height, width, Xbins, Ybins):
+		"""
+				a b c d ...
+			A
+			B
+			C
+			D
+
+			returns Aa
+		"""
+		height_step, width_step = height//Ybins, width//Xbins
+		string = ''
+		for i in range(scanpath.shape[0]):
+			fixation = scanpath[i].astype(np.int32)
+			corrs_x = chr(97 + fixation[1]//height_step)
+			corrs_y = chr(65 + fixation[0]//width_step)
+			string += (corrs_x + corrs_y)
+		return string
+
+
+
+	try:
+		if 'matlab' not in sys.modules:
+			print('This function requires MATLAB API installed.\
+					cd MATLAB_ROOT/extern/engines/python/ \
+					sudo python setup.py install')
+			return
+
+		P = _scanpath_to_string(P, height, width, Xbins, Ybins)
+		Q = _scanpath_to_string(Q, height, width, Xbins, Ybins)
+
+		# loading variables in matlab
+		matlab_engine.workspace['seq1'] = P
+		matlab_engine.workspace['seq2'] = Q
+
+		if 'ScanMatchInfo' not in matlab_engine.eval('who'):
+			if not _load_scanmatch_info(matlab_engine, ScanMatchInfo):
+				print("The MAT File doesn't exist")
+				return False
+
+
+		return matlab_engine.eval('ScanMatch(seq1, seq2, ScanMatchInfo)')
+		# return matlab_engine.ScanMatch(P, Q, stdout=StringIO())
+		# return np.array(result).squeeze()
+	except Exception as e:
+		print(e)
+		return
 
 
