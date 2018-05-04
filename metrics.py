@@ -40,7 +40,7 @@ def make_engine():
 		if not os.path.isdir(sm_path):
 			os.makedirs(sm_path)
 			url = 'https://seis.bristol.ac.uk/~psidg/ScanMatch/ScanMatch.zip'
-			print("downloading MultiMatchToolBox from the authers' website")
+			print("downloading ScanMatch from the authers' website")
 			r = requests.get(url, stream=True)
 			z = zipfile.ZipFile(io.BytesIO(r.content))
 			z.extractall(sm_path)
@@ -461,7 +461,7 @@ def MultiMatch(matlab_engine, P, Q, height, width, check=False, **kwargs):
 		# return np.array(result).squeeze()
 	except Exception as e:
 		print(e)
-		return
+		return [np.nan, np.nan, np.nan, np.nan, np.nan]
 
 def ScanMatch(matlab_engine, P,Q, height, width, Xbins=12, Ybins = 8,
 				ScanMatchInfo='ScanMatchInfo_OSIE.mat', **kwargs):
@@ -525,11 +525,11 @@ def ScanMatch(matlab_engine, P,Q, height, width, Xbins=12, Ybins = 8,
 				return False
 
 
-		return matlab_engine.eval('ScanMatch(seq1, seq2, ScanMatchInfo)')
+		return matlab_engine.eval('ScanMatch(seq1, seq2, ScanMatchInfo)', stdout=StringIO())
 		# return matlab_engine.ScanMatch(P, Q, stdout=StringIO())
 		# return np.array(result).squeeze()
 	except Exception as e:
 		print(e)
-		return
+		return np.nan
 
 
