@@ -159,7 +159,7 @@ class SaliencyDataset():
 			if (key == 'sequence'):# and ( self.sequence is None) :
 				npz_file = os.path.join(sub_dir, '{0}.npz'.format(self.name))
 				with open(npz_file, 'rb') as f_handle:
-					self.sequence = np.load(f_handle)
+					self.sequence = np.load(f_handle, encoding='latin1')
 
 		except Exception as x:
 			print(x)
@@ -192,9 +192,6 @@ class SaliencyDataset():
 									_sample[mask_greater] = (1.0 - np.finfo(float).eps)
 									_sample[mask_smaller] = np.finfo(float).eps
 									user = np.concatenate((_sample, user[:,2:]), axis=1)
-								else:
-									# TODO
-									print('fix was ignored, only works in percentile mode.')
 							else:
 									# TODO
 								print('fix was ignored, only works in percentile mode.')
@@ -205,12 +202,12 @@ class SaliencyDataset():
 									user = user[user[:,0]>=(np.finfo(float).eps), :]
 									user = user[user[:,1]<=(1-np.finfo(float).eps), :]
 									user = user[user[:,1]>=(np.finfo(float).eps), :]
-								else:
-									# TODO
-									print('fix was ignored, only works in percentile mode.')
 							else:
-								# TODO
-								print('fix was ignored, only works in percentile mode.')
+								w , h = self.img_size
+								user = user[user[:,0]<=(w - np.finfo(float).eps), :]
+								user = user[user[:,0]>=(np.finfo(float).eps), :]
+								user = user[user[:,1]<=(h-np.finfo(float).eps), :]
+								user = user[user[:,1]>=(np.finfo(float).eps), :]
 					tmp.append(user)
 				tmp = np.array(tmp)
 
