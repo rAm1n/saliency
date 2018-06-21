@@ -19,12 +19,16 @@ CONFIG = {
 }
 
 
+DATASETS = ['TORONTO', 'CAT2000', 'CROWD', 'SALICON', 'LOWRES',\
+		 'KTH', 'OSIE']#, 'MIT1003', 'PASCAL']
+
+
 class SaliencyDataset():
-	def __init__(self, name, config=CONFIG):
-		self.name =  name.upper()
+	def __init__(self, config=CONFIG):
+		self.name = None
 		self.config = config
 		self.sequence = None
-		self._download_or_load()
+		# self._download_or_load()
 
 	def __repr__(self):
 		return 'Dataset object - {0}'.format(self.name)
@@ -33,17 +37,37 @@ class SaliencyDataset():
 		return 'Dataset object - {0}'.format(self.name)
 
 	def __len__(self):
-		return len(self.data)
+		if self.name:
+			return len(self.data)
+		else:
+			print('dataset has not been loaded yet.')
+			return 0
 
-	def _download_or_load(self):
+	def load(self, name):
+		name = name.upper()
+		if name not in DATASETS:
+			print('{0} has not been converted yet.'.format(name))
+			return False
+		self.name = name
+		self._download_or_load(name)
 
 
+	def dataset_names(self):
+		return DATASETS
+
+	def _download_or_load(self, name):
 		try:
 			dataset_file = self.config['dataset_json']
 			with open(dataset_file, 'r') as f_handle:
-				data = json.load(f_handle)[self.name]
+				data = json.load(f_handle)[name]
+
+			self.url = data['url']
+			self.data_type = data['data_type']
+			self.data = data['data']
+
 			for key, value in data.items():
-				setattr(SaliencyDataset, key, value)
+				if not hasattr(SaliencyDataset, key):
+					setattr(SaliencyDataset, key, value)
 
 		except KeyError:
 			print('{0} has not been converted yet'.format(self.name))
@@ -121,8 +145,8 @@ class SaliencyDataset():
 
 	def _load(self, key):
 		try:
-			if key not in self.url:
-				key = 'data'
+			# if key not in self.url:
+			# 	key = 'data'
 
 			sub_dir = os.path.join(self.directory, key)
 			if not os.path.isdir(sub_dir): # download
@@ -132,7 +156,7 @@ class SaliencyDataset():
 				except Exception as x:
 					print(x)
 
-			if (key == 'sequence') and ( self.sequence is None) :
+			if (key == 'sequence'):# and ( self.sequence is None) :
 				npz_file = os.path.join(sub_dir, '{0}.npz'.format(self.name))
 				with open(npz_file, 'rb') as f_handle:
 					self.sequence = np.load(f_handle)
@@ -142,9 +166,14 @@ class SaliencyDataset():
 
 	def get(self, data_type, **kargs):
 		result = list()
+		# loading required data
+		if data_type in ['sequence', 'fixation']:
+			self._load('sequence')
+		elif data_type in ['heatmap', 'heatmap_path']:
+			self._load('heatmap')
+
 		for idx, img in enumerate(self.data):
 			if data_type=='sequence':
-				self._load('sequence')
 				tmp = list()
 				for user in self.sequence[idx]:
 					user = np.array(user)
@@ -186,13 +215,11 @@ class SaliencyDataset():
 				tmp = np.array(tmp)
 
 			elif data_type =='heatmap':
-				self._load('heatmap')
 				path = os.path.join(self.directory, img['heatmap'])
 				if os.path.isfile(path):
 					tmp = imread(path)
 
 			elif data_type == 'heatmap_path':
-				self._load('heatmap')
 				tmp = os.path.join(self.directory, img['heatmap'])
 
 			elif data_type =='stimuli':
@@ -204,6 +231,13 @@ class SaliencyDataset():
 						tmp = np.array(Image.fromarray(tmp).convert('RGB').getdata()).reshape(shape + (3,))
 			elif data_type == 'stimuli_path':
 				tmp = os.path.join(self.directory, img['stimuli'])
+			elif data_type == 'fixation':
+				h, w = img['img_size']
+				tmp = np.zeros((h,w))
+				for user in self.sequence[idx]:
+					for fix in user:
+						if (fix[1] < h) and (fix[0] < w):
+							tmp[int(fix[1]), int(fix[0])] = 1
 			else:
 				try:
 					tmp = self.data[data_type]
@@ -211,5 +245,9 @@ class SaliencyDataset():
 					return False
 			result.append(tmp)
 
-		result = np.asarray(result)
-		return result
+
+		#un-load data
+		if data_type in ['sequence', 'fixation']:
+			del self.sequence
+
+		return np.asarray(result)
