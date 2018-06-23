@@ -20,7 +20,7 @@ CONFIG = {
 
 
 DATASETS = ['TORONTO', 'CAT2000', 'CROWD', 'SALICON', 'LOWRES',\
-		 'KTH', 'OSIE']#, 'MIT1003', 'PASCAL']
+		 'KTH', 'OSIE', 'MIT1003', 'PASCAL']
 
 
 class SaliencyDataset():
@@ -28,6 +28,7 @@ class SaliencyDataset():
 		self.name = None
 		self.config = config
 		self.sequence = None
+		self.loaded = False
 		# self._download_or_load()
 
 	def __repr__(self):
@@ -48,7 +49,6 @@ class SaliencyDataset():
 		if name not in DATASETS:
 			print('{0} has not been converted yet.'.format(name))
 			return False
-		self.name = name
 		self._download_or_load(name)
 
 
@@ -60,14 +60,11 @@ class SaliencyDataset():
 			dataset_file = self.config['dataset_json']
 			with open(dataset_file, 'r') as f_handle:
 				data = json.load(f_handle)[name]
+				for key, value in data.items():
+					if not hasattr(SaliencyDataset, key):
+						setattr(SaliencyDataset, key, np.array(value))
 
-			self.url = data['url']
-			self.data_type = data['data_type']
-			self.data = data['data']
-
-			for key, value in data.items():
-				if not hasattr(SaliencyDataset, key):
-					setattr(SaliencyDataset, key, value)
+			self.name = name
 
 		except KeyError:
 			print('{0} has not been converted yet'.format(self.name))
@@ -84,9 +81,8 @@ class SaliencyDataset():
 		except OSError as e:
 				raise e
 
-		self._load('data')
-
 	def _download(self, url, path, extract=False):
+
 		try:
 			print('downloading - {0}'.format(url))
 			def save_response_content(response, destination):
@@ -104,7 +100,6 @@ class SaliencyDataset():
 						if key.startswith('download_warning'):
 							return value
 					return None
-
 				filename = url.split('=')[-1] + '.zip'
 				file_extension = 'zip'
 				destination = os.path.join(self.config['data_path'], self.name, filename)
@@ -119,6 +114,8 @@ class SaliencyDataset():
 			else:
 				headers = {'user-agent': 'Wget/1.16 (linux-gnu)'}
 				session = requests.Session()
+				session.trust_env = False
+				print(requests.get(url, stream=True).headers['Content-length'])
 				response = session.get(url, stream = True, headers=headers)
 
 				filename = url.split('/')[-1]
@@ -145,21 +142,22 @@ class SaliencyDataset():
 
 	def _load(self, key):
 		try:
-			# if key not in self.url:
-			# 	key = 'data'
 
 			sub_dir = os.path.join(self.directory, key)
 			if not os.path.isdir(sub_dir): # download
 				try:
 					os.makedirs(sub_dir)
-					self._download(self.url[key], sub_dir)
+					self._download(self.url.item()[key], sub_dir)
 				except Exception as x:
 					print(x)
 
-			if (key == 'sequence'):# and ( self.sequence is None) :
+			if (key == 'sequence') and ( self.sequence is None):
 				npz_file = os.path.join(sub_dir, '{0}.npz'.format(self.name))
 				with open(npz_file, 'rb') as f_handle:
 					self.sequence = np.load(f_handle, encoding='latin1')
+			else:
+				pass
+				# to be implemented.
 
 		except Exception as x:
 			print(x)
@@ -170,9 +168,19 @@ class SaliencyDataset():
 		if data_type in ['sequence', 'fixation']:
 			self._load('sequence')
 		elif data_type in ['heatmap', 'heatmap_path']:
-			self._load('heatmap')
+			if 'heatmap' not in self.url.item():  # heatmaps in main package.
+				self._load('data')
+			else: 								  # seperate url for heatmaps.
+				self._load('heatmap')
+		elif data_type in ['stimuli', 'stimuli_path']:
+			self._load('data')
 
-		for idx, img in enumerate(self.data):
+		if 'index' in kargs:
+			index = kargs['index']
+		else:
+			index = range(len(self.data))
+
+		for idx, img in enumerate(self.data[index]):
 			if data_type=='sequence':
 				tmp = list()
 				for user in self.sequence[idx]:
@@ -244,7 +252,5 @@ class SaliencyDataset():
 
 
 		#un-load data
-		if data_type in ['sequence', 'fixation']:
-			del self.sequence
 
 		return np.asarray(result)
