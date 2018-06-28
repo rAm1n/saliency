@@ -9,7 +9,7 @@ import zipfile
 import tarfile
 import os
 import requests
-
+from hurry.filesize import size
 
 
 CONFIG = {
@@ -49,13 +49,13 @@ class SaliencyDataset():
 		if name not in DATASETS:
 			print('{0} has not been converted yet.'.format(name))
 			return False
-		self._download_or_load(name)
+		self._load_json(name)
 
 
 	def dataset_names(self):
 		return DATASETS
 
-	def _download_or_load(self, name):
+	def _load_json(self, name):
 		try:
 			dataset_file = self.config['dataset_json']
 			with open(dataset_file, 'r') as f_handle:
@@ -112,15 +112,18 @@ class SaliencyDataset():
 					params = { 'confirm' : token }
 					response = session.get(url, params = params, stream = True)
 			else:
+				filename = url.split('/')[-1]  	
+				file_extension = filename.split('.')[-1] 
+				destination = os.path.join(path, filename)
+
+				if 'dropbox' in url:
+					url += '?dl=1'
 				headers = {'user-agent': 'Wget/1.16 (linux-gnu)'}
 				session = requests.Session()
 				session.trust_env = False
-				print(requests.get(url, stream=True).headers['Content-length'])
+				content_size = requests.get(url, stream=True).headers['Content-length']
+				print('file size : ', str(size(int(content_size))))
 				response = session.get(url, stream = True, headers=headers)
-
-				filename = url.split('/')[-1]
-				file_extension = filename.split('.')[-1]
-				destination = os.path.join(path, filename)
 
 			save_response_content(response, destination)
 
