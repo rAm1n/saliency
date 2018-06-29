@@ -9,7 +9,7 @@ import zipfile
 import tarfile
 import os
 import requests
-from hurry.filesize import size
+import wget
 
 
 CONFIG = {
@@ -28,8 +28,6 @@ class SaliencyDataset():
 		self.name = None
 		self.config = config
 		self.sequence = None
-		self.loaded = False
-		# self._download_or_load()
 
 	def __repr__(self):
 		return 'Dataset object - {0}'.format(self.name)
@@ -111,21 +109,16 @@ class SaliencyDataset():
 				if token:
 					params = { 'confirm' : token }
 					response = session.get(url, params = params, stream = True)
+
+				save_response_content(response, destination)
 			else:
-				filename = url.split('/')[-1]  	
-				file_extension = filename.split('.')[-1] 
+				filename = url.split('/')[-1]
+				file_extension = filename.split('.')[-1]
 				destination = os.path.join(path, filename)
 
 				if 'dropbox' in url:
 					url += '?dl=1'
-				headers = {'user-agent': 'Wget/1.16 (linux-gnu)'}
-				session = requests.Session()
-				session.trust_env = False
-				content_size = requests.get(url, stream=True).headers['Content-length']
-				print('file size : ', str(size(int(content_size))))
-				response = session.get(url, stream = True, headers=headers)
-
-			save_response_content(response, destination)
+				wget.download(url, destination)
 
 			if file_extension == 'zip':
 				zip_ref = zipfile.ZipFile(destination, 'r')
@@ -168,7 +161,7 @@ class SaliencyDataset():
 	def get(self, data_type, **kargs):
 		result = list()
 		# loading required data
-		if data_type in ['sequence', 'fixation']:
+		if data_type in ['sequence', 'fixation', 'fixation_time']:
 			self._load('sequence')
 		elif data_type in ['heatmap', 'heatmap_path']:
 			if 'heatmap' not in self.url.item():  # heatmaps in main package.
@@ -246,6 +239,17 @@ class SaliencyDataset():
 					for fix in user:
 						if (fix[1] < h) and (fix[0] < w):
 							tmp[int(fix[1]), int(fix[0])] = 1
+			elif data_type == 'fixation_time':
+				h , w = img['img_size']
+				user_count = len(self.sequence[idx])
+				tmp = np.zeros((user_count, h, w), dtype=np.float32)
+				for user_idx, user in enumerate(self.sequence[idx]):
+					for fix in user:
+						if (fix[1] < h) and (fix[0] < w):
+							tmp[user_idx, int(fix[1]), int(fix[0])] = fix[2]
+				tmp[tmp == 0] = np.nan
+				tmp = np.nanmean(tmp, axis=0)
+				tmp[np.isnan(tmp)] = 0
 			else:
 				try:
 					tmp = self.data[data_type]

@@ -4,4 +4,4 @@ scipy
 Pillow
 fastdtw
 editdistance
-hurry.filesize
+wget
