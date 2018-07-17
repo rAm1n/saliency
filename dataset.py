@@ -23,7 +23,7 @@ DATASETS = ['TORONTO', 'CAT2000', 'CROWD', 'SALICON', 'LOWRES',\
 		 'KTH', 'OSIE', 'MIT1003', 'PASCAL']
 
 
-class SaliencyDataset():
+class SaliencyDataset(object):
 	def __init__(self, config=CONFIG):
 		self.name = None
 		self.config = config
@@ -60,7 +60,7 @@ class SaliencyDataset():
 				data = json.load(f_handle)[name]
 				for key, value in data.items():
 					if not hasattr(SaliencyDataset, key):
-						setattr(SaliencyDataset, key, np.array(value))
+						self.__setattr__(key, np.array(value))
 
 			self.name = name
 
