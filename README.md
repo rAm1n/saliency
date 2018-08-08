@@ -13,7 +13,7 @@ This repository contains an API for saliency prediction datasets along with most
 
  1. Clone the repository using the following command:
 
-			`git clone git@github.com:rAm1n/saliency.git`
+		`git clone git@github.com:rAm1n/saliency.git`
 
 	or download a zip version from [master.zip](https://github.com/rAm1n/saliency/archive/master.zip)
 2. Install required packages using pip
@@ -29,7 +29,7 @@ At this moment, the following datasets are covered. I have plan to add more and 
 |CAT2000          |Ali Borji, Laurent Itti. [CAT2000: A Large Scale Fixation Dataset for Boosting Saliency Research ](http://arxiv.org/abs/1505.03581)            ||
 |CROWD          |Ming Jiang, Juan Xu, Qi Zhao. [Saliency in Crowd ](http://www.ece.nus.edu.sg/stfpage/eleqiz/publications/pdf/crowd_eccv14.pdf)            |            |
 |KTH          |Gert Kootstra, Bart de Boer, Lambert R. B. Schomaker. [Predicting Eye Fixations on Complex Visual Stimuli using Local Symmetry ](http://www.csc.kth.se/~kootstra/index.php?item=602&menu=&file=http://dx.doi.org/10.1007/s12559-010-9089-5)            |            |
-|OSIE          |Juan Xu, Ming Jiang, Shuo Wang, Mohan Kankanhalli, Qi Zhao. [Predicting Human Gaze Beyond Pixels](http://www.ece.nus.edu.sg/stfpage/eleqiz/publications/pdf/saliency_jov14.pdf)            |Object level attributes.           |
+|OSIE          |Juan Xu, Ming Jiang, Shuo Wang, Mohan Kankanhalli, Qi Zhao. [Predicting Human Gaze Beyond Pixels](http://www.ece.nus.edu.sg/stfpage/eleqiz/publications/pdf/saliency_jov14.pdf)            |Object level attributes - mouse tracking          |
 |MIT1003          |Tilke Judd, Krista Ehinger, Fredo Durand, Antonio Torralba. [Learning to Predict where Humans Look](http://people.csail.mit.edu/tjudd/WherePeopleLook/Docs/wherepeoplelook.pdf)            |            |
 |LOWRES          |Tilke Judd, Fredo Durand, Antonio Torralba. [Fixations on Low-Resolution Images](http://www.journalofvision.org/content/11/4/14.full.pdf+html)            |           |
 |PASCAL          |Yin Li , Xiaodi Hou , Christof Koch , James M. Rehg , Alan L. Yuille.[The Secrets of Salient Object Segmentation](http://openaccess.thecvf.com/content_cvpr_2014/papers/Li_The_Secrets_of_2014_CVPR_paper.pdf)            |Segmentation masks from VOC10            |
@@ -68,10 +68,14 @@ At this moment, the following datasets are covered. I have plan to add more and 
 	['TORONTO', 'CAT2000', 'CROWD', 'SALICON', 'LOWRES', 'KTH', 'OSIE', 'MIT1003', 'PASCAL']
 	
 	# Load your favourite dataset.
-    dataset.load('OSIE')
+   	 dataset.load('OSIE')
+
+	# list of annotations available for the chosen dataset.
+	 dataset.data_type
+	>>> array([u'heatmap', u'sequence', u'sequence_mouse_lab', u'sequence_mouse_amt'], dtype='<U18')
 
 	# from now on, 'get' function will be your friend.
-	# It can retrieve and return scanpaths.
+	# It can retrieve and return scanpaths. use one of the keys from data_type
 	sequence = dataset.get('sequence') # return a np array. (N,O,F,D)
 	
 	# Or only the path to heatmaps 
