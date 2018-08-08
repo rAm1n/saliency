@@ -244,18 +244,20 @@ class SaliencyDataset(object):
 			elif data_type == 'fixation':
 				h, w = img['img_size']
 				tmp = np.zeros((h,w))
-				for user in self.sequence[idx]:
+				for user in self.sequence[index[idx]]:
 					for fix in user:
 						if (fix[1] < h) and (fix[0] < w):
-							tmp[int(fix[1]), int(fix[0])] = 1
+							if (fix[1] > 0) and (fix[0] > 0):
+								tmp[int(fix[1]), int(fix[0])] = 1
 			elif data_type == 'fixation_time':
 				h , w = img['img_size']
 				user_count = len(self.sequence[idx])
 				tmp = np.zeros((user_count, h, w), dtype=np.float32)
-				for user_idx, user in enumerate(self.sequence[idx]):
+				for user_idx, user in enumerate(self.sequence[index[idx]]):
 					for fix in user:
 						if (fix[1] < h) and (fix[0] < w):
-							tmp[user_idx, int(fix[1]), int(fix[0])] = fix[2]
+							if (fix[1] > 0) and (fix[0] > 0):
+								tmp[user_idx, int(fix[1]), int(fix[0])] = fix[2]
 				tmp[tmp == 0] = np.nan
 				tmp = np.nanmean(tmp, axis=0)
 				tmp[np.isnan(tmp)] = 0
