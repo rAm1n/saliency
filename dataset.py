@@ -10,7 +10,12 @@ import tarfile
 import os
 import requests
 import wget
+import ssl
 
+
+
+
+ssl._create_default_https_context = ssl._create_unverified_context
 
 CONFIG = {
 	'data_path' : os.path.expanduser('~/tmp/saliency/'),
@@ -27,7 +32,6 @@ class SaliencyDataset(object):
 	def __init__(self, config=CONFIG):
 		self.name = None
 		self.config = config
-		self.sequence = None
 
 	def __repr__(self):
 		return 'Dataset object - {0}'.format(self.name)
@@ -61,7 +65,9 @@ class SaliencyDataset(object):
 				for key, value in data.items():
 					if not hasattr(SaliencyDataset, key):
 						self.__setattr__(key, np.array(value))
-
+						if key == 'data_type':
+							for d_type in value:
+								self.__setattr__(d_type, None)
 			self.name = name
 
 		except KeyError:
@@ -79,7 +85,7 @@ class SaliencyDataset(object):
 		except OSError as e:
 				raise e
 
-	def _download(self, url, path, extract=False):
+	def _download(self, url, path, key, extract=False):
 
 		try:
 			print('downloading - {0}'.format(url))
@@ -114,8 +120,9 @@ class SaliencyDataset(object):
 			else:
 				filename = url.split('/')[-1]
 				file_extension = filename.split('.')[-1]
-				destination = os.path.join(path, filename)
-
+				#destination = os.path.join(path, filename)
+				destination =  os.path.join(path, key + '.' + file_extension)
+				print(destination)
 				if 'dropbox' in url:
 					url += '?dl=1'
 				wget.download(url, destination)
@@ -138,19 +145,18 @@ class SaliencyDataset(object):
 
 	def _load(self, key):
 		try:
-
 			sub_dir = os.path.join(self.directory, key)
 			if not os.path.isdir(sub_dir): # download
 				try:
 					os.makedirs(sub_dir)
-					self._download(self.url.item()[key], sub_dir)
+					self._download(self.url.item()[key], sub_dir, key)
 				except Exception as x:
 					print(x)
 
-			if (key == 'sequence') and ( self.sequence is None):
-				npz_file = os.path.join(sub_dir, '{0}.npz'.format(self.name))
+			if ('sequence' in key) and ( getattr(self, key) is None):
+				npz_file = os.path.join(sub_dir, '{0}.npz'.format(key))
 				with open(npz_file, 'rb') as f_handle:
-					self.sequence = np.load(f_handle, encoding='latin1')
+					self.__setattr__(key, np.load(f_handle, encoding='latin1'))
 			else:
 				pass
 				# to be implemented.
@@ -163,6 +169,9 @@ class SaliencyDataset(object):
 		# loading required data
 		if data_type in ['sequence', 'fixation', 'fixation_time']:
 			self._load('sequence')
+		elif data_type in ['sequence_mouse_lab', 'sequence_mouse_amt']:
+			self._load(data_type)
+	
 		elif data_type in ['heatmap', 'heatmap_path']:
 			if 'heatmap' not in self.url.item():  # heatmaps in main package.
 				self._load('data')
@@ -177,9 +186,9 @@ class SaliencyDataset(object):
 			index = range(len(self.data))
 
 		for idx, img in enumerate(self.data[index]):
-			if data_type=='sequence':
+			if 'sequence' in data_type:
 				tmp = list()
-				for user in self.sequence[idx]:
+				for user in getattr(self, data_type)[idx]:
 					user = np.array(user)
 					if 'percentile' in kargs:
 						if kargs['percentile']:
