@@ -190,10 +190,11 @@ class SaliencyDataset(object):
 				tmp = list()
 				for user in getattr(self, data_type)[idx]:
 					user = np.array(user)
+					if user.size == 0:
+						tmp.append([])
+						continue
 					if 'percentile' in kargs:
 						if kargs['percentile']:
-							if(user.shape)[0] == 0:
-								continue
 							_sample = user[:,:2] / img['img_size'][::-1]
 							user = np.concatenate((_sample, user[:,2:]), axis=1)
 					if 'modify' in kargs:
