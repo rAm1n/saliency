@@ -191,7 +191,6 @@ class SaliencyDataset(object):
 				for user in getattr(self, data_type)[idx]:
 					user = np.array(user)
 					if user.size == 0:
-						tmp.append([])
 						continue
 					if 'percentile' in kargs:
 						if kargs['percentile']:
