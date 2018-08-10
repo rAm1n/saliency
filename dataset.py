@@ -194,7 +194,7 @@ class SaliencyDataset(object):
 						if kargs['percentile']:
 							if(user.shape)[0] == 0:
 								continue
-							_sample = user[:,:2] / self.img_size
+							_sample = user[:,:2] / img['img_size'][::-1]
 							user = np.concatenate((_sample, user[:,2:]), axis=1)
 					if 'modify' in kargs:
 						if kargs['modify']== 'fix' :
@@ -211,16 +211,16 @@ class SaliencyDataset(object):
 						elif kargs['modify'] == 'remove':
 							if 'percentile' in kargs:
 								if kargs['percentile']:
-									user = user[user[:,0]<=(1 - np.finfo(float).eps), :]
-									user = user[user[:,0]>=(np.finfo(float).eps), :]
-									user = user[user[:,1]<=(1-np.finfo(float).eps), :]
-									user = user[user[:,1]>=(np.finfo(float).eps), :]
+									user = user[user[:,0]<(1 - np.finfo(float).eps), :]
+									user = user[user[:,0]>(np.finfo(float).eps), :]
+									user = user[user[:,1]<(1-np.finfo(float).eps), :]
+									user = user[user[:,1]>(np.finfo(float).eps), :]
 							else:
-								w , h = self.img_size
-								user = user[user[:,0]<=(w - np.finfo(float).eps), :]
-								user = user[user[:,0]>=(np.finfo(float).eps), :]
-								user = user[user[:,1]<=(h-np.finfo(float).eps), :]
-								user = user[user[:,1]>=(np.finfo(float).eps), :]
+								h, w = img['img_size']
+								user = user[user[:,0]<(w - np.finfo(float).eps), :]
+								user = user[user[:,0]>(np.finfo(float).eps), :]
+								user = user[user[:,1]<(h-np.finfo(float).eps), :]
+								user = user[user[:,1]>(np.finfo(float).eps), :]
 					tmp.append(user)
 				tmp = np.array(tmp)
 
