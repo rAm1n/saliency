@@ -38,6 +38,8 @@ At this moment, the following datasets are covered. I have plan to add more and 
 
 
 **Let's get started**:
+A jupyter notebook version of this tutorial has been added:  [help.ipynb](https://github.com/rAm1n/saliency/blob/master/help.ipynb)
+
 
 
 	"""
@@ -129,3 +131,8 @@ Eye-tracking data and specifically scanpath always have errors and out of bounda
 |time_delay_embedding_distance          |Wei Wang, Cheng Chen, Yizhou Wang. [Simulating human saccadic scanpaths on natural images](https://ieeexplore.ieee.org/document/5995423/) | Adopted from [Fixaton](https://github.com/dariozanca/FixaTons)|
 MultiMatch          |Jarodzka, H., Holmqvist, K., & Nystrom, M. [A Vector-based, Multidimensional Scanpath Similarity Measure.](https://dl.acm.org/citation.cfm?id=1743718)| |   
 |ScanMatch          | F. Cristino, S. Mathôt, J. Theeuwes & I. D. Gilchrist. [ScanMatch: A Novel Method for Comparing Fixation Sequences.](https://seis.bristol.ac.uk/~psidg/ScanMatch/CMTG2010.pdf) | |
+
+
+
+
+

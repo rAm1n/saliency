@@ -59,6 +59,8 @@ class SaliencyDataset(object):
 
 	def _load_json(self, name):
 		try:
+			if "dataset_json" not in self.config:
+				self.config['dataset_json'] = 'data/dataset.json'
 			dataset_file = self.config['dataset_json']
 			with open(dataset_file, 'r') as f_handle:
 				data = json.load(f_handle)[name]
@@ -167,7 +169,7 @@ class SaliencyDataset(object):
 	def get(self, data_type, **kargs):
 		result = list()
 		# loading required data
-		if data_type in ['sequence', 'fixation', 'fixation_time']:
+		if data_type in ['sequence', 'fixation', 'fixation_time', 'fixation_dw']:
 			self._load('sequence')
 		elif data_type in ['sequence_mouse_lab', 'sequence_mouse_amt']:
 			self._load(data_type)
@@ -261,6 +263,21 @@ class SaliencyDataset(object):
 				tmp[tmp == 0] = np.nan
 				tmp = np.nanmean(tmp, axis=0)
 				tmp[np.isnan(tmp)] = 0
+
+			elif data_type == 'fixation_dw':
+				h , w = img['img_size']
+				user_count = len(self.sequence[idx])
+				tmp = np.zeros((user_count, h, w), dtype=np.float32)
+				for user_idx, user in enumerate(self.sequence[index[idx]]):
+					user = np.array(user)
+					for fix in user:
+						if (fix[1] < h) and (fix[0] < w):
+							if (fix[1] > 0) and (fix[0] > 0):
+								tmp[user_idx, int(fix[1]), int(fix[0])] = (fix[2] / user[:,2].sum())
+				tmp[tmp == 0] = np.nan
+				tmp = np.nanmean(tmp, axis=0)
+				tmp[np.isnan(tmp)] = 0				
+
 			else:
 				try:
 					tmp = self.data[data_type]
