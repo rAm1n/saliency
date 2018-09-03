@@ -201,9 +201,7 @@ def AUC(saliency_map, fixation_map):
 		auc = auc_from_roc(tp, fp)
 		return auc
 
-	if saliency_map.max() == 255:
-		saliency_map = saliency_map / 255
-	#fixation_map = (fixation_map>0.7).astype(int)
+	fixation_map = (fixation_map>0.7).astype(int)
 	salShape = saliency_map.shape
 	fixShape = fixation_map.shape
 
