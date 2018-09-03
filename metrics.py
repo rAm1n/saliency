@@ -99,7 +99,7 @@ def NSS(saliency_map, fixation_map):
 	return score
 
 
-def CC(sal_map_1, sal_map_2):
+def CC(saliency_map, saliency_map_gt):
 	"""
 	This finds the linear correlation coefficient between two different
 	saliency maps (also called Pearson's linear coefficient).
@@ -109,28 +109,28 @@ def CC(sal_map_1, sal_map_2):
 	saliencyMap1 and saliencyMap2 are 2 real-valued matrices
 
 		Computer CC score .
-		:param sal_map_1 : first saliency map
-		:param sal_map_2 : second  saliency map.
+		:param saliency_map : first saliency map
+		:param saliency_map_gt : second  saliency map.
 		:return score: float : score
 
 	"""
-	if isinstance(sal_map_1, np.ndarray):
-		sal_map_1 = np.array(sal_map_1, dtype=np.float32)
-	elif sal_map_1.dtype != np.float32:
-		sal_map_1 = sal_map_1.astype(np.float32)
+	if isinstance(saliency_map, np.ndarray):
+		saliency_map = np.array(saliency_map, dtype=np.float32)
+	elif saliency_map.dtype != np.float32:
+		saliency_map = saliency_map.astype(np.float32)
 
-	if isinstance(sal_map_2, np.ndarray):
-		sal_map_2 = np.array(sal_map_2, dtype=np.float32)
-	elif sal_map_1.dtype != np.float32:
-		sal_map_2 = sal_map_2.astype(np.float32)
+	if isinstance(saliency_map_gt, np.ndarray):
+		saliency_map_gt = np.array(saliency_map_gt, dtype=np.float32)
+	elif saliency_map.dtype != np.float32:
+		saliency_map_gt = saliency_map_gt.astype(np.float32)
 
-	if sal_map_1.size != sal_map_2.size:
-		sal_map_1 = imresize(sal_map_1, sal_map_2.shape)
+	if saliency_map.size != saliency_map_gt.size:
+		saliency_map = imresize(saliency_map, saliency_map_gt.shape)
 
-	sal_map_1 = (sal_map_1 - sal_map_1.mean()) / (sal_map_1.std())
-	sal_map_2 = (sal_map_2 - sal_map_2.mean()) / (sal_map_2.std())
+	saliency_map = (saliency_map - saliency_map.mean()) / (saliency_map.std())
+	saliency_map_gt = (saliency_map_gt - saliency_map_gt.mean()) / (saliency_map_gt.std())
 
-	score = np.corrcoef(sal_map_1,sal_map_2)
+	score = np.corrcoef(saliency_map.flatten(),saliency_map_gt.flatten())[0][1]
 
 	return score
 
@@ -149,7 +149,7 @@ def EMD():
 
 
 
-def KLdiv(saliency_map , fixation_map):
+def KLdiv(saliency_map, saliency_map_gt):
 	"""
 	This finds the KL-divergence between two different saliency maps when
 	viewed as distributions: it is a non-symmetric measure of the information
@@ -167,20 +167,20 @@ def KLdiv(saliency_map , fixation_map):
 	elif saliency_map.dtype != np.float32:
 		saliency_map = saliency_map.astype(np.float32)
 
-	if isinstance(fixation_map, np.ndarray):
-		fixation_map = np.array(fixation_map, dtype=np.float32)
+	if isinstance(saliency_map_gt, np.ndarray):
+		saliency_map_gt = np.array(saliency_map_gt, dtype=np.float32)
 	elif fixation_map.dtype != np.float32:
-		fixation_map = fixation_map.astype(np.float32)
+		saliency_map_gt = saliency_map_gt.astype(np.float32)
 
 	# the function will normalize maps before computing Kld
-	score = entropy(saliency_map, fixation_map)
+	score = entropy(saliency_map.flatten(), saliency_map_gt.flatten())
 	return score
 
 
 
-def AUC(salMap, fixMap):
-	"""Computes AUC for given saliency map 'salMap' and given
-	fixation map 'fixMap'
+def AUC(saliency_map, fixation_map):
+	"""Computes AUC for given saliency map 'saliency_map' and given
+	fixation map 'fixation_map'
 	"""
 	def area_under_curve(predicted, actual, labelset):
 		def roc_curve(predicted, actual, cls):
@@ -201,12 +201,14 @@ def AUC(salMap, fixMap):
 		auc = auc_from_roc(tp, fp)
 		return auc
 
-	fixMap = (fixMap>0.7).astype(int)
-	salShape = salMap.shape
-	fixShape = fixMap.shape
+	if saliency_map.max() == 255:
+		saliency_map = saliency_map / 255
+	#fixation_map = (fixation_map>0.7).astype(int)
+	salShape = saliency_map.shape
+	fixShape = fixation_map.shape
 
-	predicted = salMap.reshape(salShape[0]*salShape[1], -1, order='F').flatten()
-	actual = fixMap.reshape(fixShape[0]*fixShape[1], -1, order='F').flatten()
+	predicted = saliency_map.reshape(salShape[0]*salShape[1], -1, order='F').flatten()
+	actual = fixation_map.reshape(fixShape[0]*fixShape[1], -1, order='F').flatten()
 	labelset = np.arange(2)
 
 	return area_under_curve(predicted, actual, labelset)
@@ -225,7 +227,9 @@ def SAUC(saliency_map, fixation_map, shuf_map=np.zeros((480,640)), step_size=.01
 
 	"""
 
-	saliency_map = fixation_map - np.min(fixation_map)
+	saliency_map -= np.min(saliency_map)
+	fixation_map = np.vstack(np.where(fixation_map!=0)).T
+
 	if np.max(saliency_map) > 0:
 		saliency_map = saliency_map / np.max(saliency_map)
 	Sth = np.asarray([ saliency_map[y-1][x-1] for y,x in fixation_map ])
@@ -250,7 +254,7 @@ def SAUC(saliency_map, fixation_map, shuf_map=np.zeros((480,640)), step_size=.01
 	fp[1:-1]=[float(np.sum(nFix[randfix >= thresh]))/Nothers for thresh in allthreshes]
 
 	score = np.trapz(tp,fp)
-	return scrore
+	return score
 
 
 def euclidean_distance(P,Q, **kwargs):
