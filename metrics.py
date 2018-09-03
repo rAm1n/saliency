@@ -92,7 +92,7 @@ def NSS(saliency_map, fixation_map):
 
 
 	MAP = (saliency_map - saliency_map.mean()) / (saliency_map.std())
-	mask = MAP.astype(bool)
+	mask = fixation_map.astype(np.bool)
 
 	score =  MAP[mask].mean()
 
