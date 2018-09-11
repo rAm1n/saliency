@@ -189,6 +189,8 @@ class SaliencyDataset(object):
 
 		for idx, img in enumerate(self.data[index]):
 			if 'sequence' in data_type:
+				if 'size' in kargs:
+					kargs['percentile'] = True
 				tmp = list()
 				for user in getattr(self, data_type)[idx]:
 					user = np.array(user)
@@ -223,6 +225,8 @@ class SaliencyDataset(object):
 								user = user[user[:,0]>(np.finfo(float).eps), :]
 								user = user[user[:,1]<(h-np.finfo(float).eps), :]
 								user = user[user[:,1]>(np.finfo(float).eps), :]
+					if 'size' in kargs:
+						user = np.hstack([(user[:,:2] * kargs['size'][::-1]).astype(np.int32), user[:,2:]])
 					tmp.append(user)
 				tmp = np.array(tmp)
 
@@ -230,6 +234,8 @@ class SaliencyDataset(object):
 				path = os.path.join(self.directory, img['heatmap'])
 				if os.path.isfile(path):
 					tmp = imread(path)
+					if 'size' in kargs:
+						tmp = scipy.misc.imresize(tmp, kargs['size'])
 
 			elif data_type == 'heatmap_path':
 				tmp = os.path.join(self.directory, img['heatmap'])
@@ -241,39 +247,77 @@ class SaliencyDataset(object):
 					if tmp.ndim != 3:
 						shape = tmp.shape
 						tmp = np.array(Image.fromarray(tmp).convert('RGB').getdata()).reshape(shape + (3,))
+						if 'size' in kargs:
+							tmp = scipy.misc.imresize(tmp, kargs['size'])
 			elif data_type == 'stimuli_path':
 				tmp = os.path.join(self.directory, img['stimuli'])
 			elif data_type == 'fixation':
-				h, w = img['img_size']
+				im_h, im_w = img['img_size']
+				if 'size' in kargs:
+					h, w = kargs['size']
+				else:
+					h, w = im_h, im_w
 				tmp = np.zeros((h,w))
 				for user in self.sequence[index[idx]]:
 					for fix in user:
-						if (fix[1] < h) and (fix[0] < w):
+						if (fix[1] < im_h) and (fix[0] < im_w):
 							if (fix[1] > 0) and (fix[0] > 0):
-								tmp[int(fix[1]), int(fix[0])] = 1
+								y, x = fix[1], fix[0]
+								if 'size' in kargs:
+									y /= im_h
+									y *= h
+									x /= im_w
+									x *= w
+								x, y = int(x), int(y)
+								tmp[y,x] = 1
+
 			elif data_type == 'fixation_time':
-				h , w = img['img_size']
+				im_h, im_w = img['img_size']
+				if 'size' in kargs:
+					h, w = kargs['size']
+				else:
+					h, w = im_h, im_w
+
 				user_count = len(self.sequence[idx])
 				tmp = np.zeros((user_count, h, w), dtype=np.float32)
 				for user_idx, user in enumerate(self.sequence[index[idx]]):
 					for fix in user:
-						if (fix[1] < h) and (fix[0] < w):
+						if (fix[1] < im_h) and (fix[0] < im_w):
 							if (fix[1] > 0) and (fix[0] > 0):
-								tmp[user_idx, int(fix[1]), int(fix[0])] = fix[2]
+								y, x = fix[1], fix[0]
+								if 'size' in kargs:
+									y /= im_h
+									y *= h
+									x /= im_w
+									x *= w
+								x, y = int(x), int(y)
+								tmp[user_idx, y, x] = fix[2]
+
 				tmp[tmp == 0] = np.nan
 				tmp = np.nanmean(tmp, axis=0)
 				tmp[np.isnan(tmp)] = 0
 
 			elif data_type == 'fixation_dw':
-				h , w = img['img_size']
+				im_h, im_w = img['img_size']
+				if 'size' in kargs:
+					h, w = kargs['size']
+				else:
+					h, w = im_h, im_w
 				user_count = len(self.sequence[idx])
 				tmp = np.zeros((user_count, h, w), dtype=np.float32)
 				for user_idx, user in enumerate(self.sequence[index[idx]]):
 					user = np.array(user)
 					for fix in user:
-						if (fix[1] < h) and (fix[0] < w):
+						if (fix[1] < im_h) and (fix[0] < im_w):
 							if (fix[1] > 0) and (fix[0] > 0):
-								tmp[user_idx, int(fix[1]), int(fix[0])] = (fix[2] / user[:,2].sum())
+								y, x = fix[1], fix[0]
+								if 'size' in kargs:
+									y /= im_h
+									y *= h
+									x /= im_w
+									x *= w
+								x, y = int(x), int(y)
+								tmp[user_idx, y, x] = (fix[2] / user[:,2].sum())
 				tmp[tmp == 0] = np.nan
 				tmp = np.nanmean(tmp, axis=0)
 				tmp[np.isnan(tmp)] = 0				
