@@ -25,7 +25,7 @@ CONFIG = {
 
 
 DATASETS = ['TORONTO', 'CAT2000', 'CROWD', 'SALICON', 'LOWRES',\
-		 'KTH', 'OSIE', 'MIT1003', 'PASCAL']
+		 'KTH', 'OSIE', 'MIT1003', 'PASCAL', 'EMOD']
 
 
 class SaliencyDataset(object):
@@ -155,7 +155,8 @@ class SaliencyDataset(object):
 				except Exception as x:
 					print(x)
 
-			if ('sequence' in key) and ( getattr(self, key) is None):
+#			if ('sequence' in key) and ( getattr(self, key) is None):
+			if (self.url.item()[key][-3:] == 'npz') and ( getattr(self, key) is None):
 				npz_file = os.path.join(sub_dir, '{0}.npz'.format(key))
 				with open(npz_file, 'rb') as f_handle:
 					self.__setattr__(key, np.load(f_handle, encoding='latin1'))
@@ -173,7 +174,6 @@ class SaliencyDataset(object):
 			self._load('sequence')
 		elif data_type in ['sequence_mouse_lab', 'sequence_mouse_amt']:
 			self._load(data_type)
-	
 		elif data_type in ['heatmap', 'heatmap_path']:
 			if 'heatmap' not in self.url.item():  # heatmaps in main package.
 				self._load('data')
@@ -181,6 +181,8 @@ class SaliencyDataset(object):
 				self._load('heatmap')
 		elif data_type in ['stimuli', 'stimuli_path']:
 			self._load('data')
+		else:
+			self._load(data_type)
 
 		if 'index' in kargs:
 			index = kargs['index']
@@ -324,7 +326,10 @@ class SaliencyDataset(object):
 
 			else:
 				try:
-					tmp = self.data[data_type]
+					if data_type in self.data_type:
+						tmp = getattr(self, data_type) 
+					else:
+						tmp = self.data[data_type]
 				except Exception as x:
 					return False
 			result.append(tmp)
