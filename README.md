@@ -90,6 +90,9 @@ A jupyter notebook version of this tutorial has been added:  [help.ipynb](https:
 	
 	# Consider passing a list of index if not everything is needed.
 	samples = dataset.get('stimuli_path', index=range(10))
+
+	# Also a list of Users if you only need specific observers from the dataset
+	seqs = dataset.get('sequence', index=range(100), users=range(2,10))
 	
 	# Some metrics like AUC need fixation maps instead of heatmaps (N, W, H)
 	fixations = dataset.get('fixation', index=range(10))

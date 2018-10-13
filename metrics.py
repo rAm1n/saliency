@@ -169,11 +169,12 @@ def KLdiv(saliency_map, saliency_map_gt):
 
 	if not isinstance(saliency_map_gt, np.ndarray):
 		saliency_map_gt = np.array(saliency_map_gt, dtype=np.float32)
-	elif fixation_map.dtype != np.float32:
+	elif saliency_map_gt.dtype != np.float32:
 		saliency_map_gt = saliency_map_gt.astype(np.float32)
 
+	EPS = np.finfo(np.float32).eps
 	# the function will normalize maps before computing Kld
-	score = entropy(saliency_map.flatten(), saliency_map_gt.flatten())
+	score = entropy(saliency_map.flatten() + EPS, saliency_map_gt.flatten() + EPS)
 	return score
 
 
@@ -318,7 +319,7 @@ def SIM(saliency_map, saliency_map_gt):
 
 	if not isinstance(saliency_map_gt, np.ndarray):
 		saliency_map_gt = np.array(saliency_map_gt, dtype=np.float32)
-	elif fixation_map.dtype != np.float32:
+	elif saliency_map_gt.dtype != np.float32:
 		saliency_map_gt = saliency_map_gt.astype(np.float32)
 
 	saliency_map = (saliency_map - saliency_map.min()) \

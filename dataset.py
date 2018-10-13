@@ -189,12 +189,22 @@ class SaliencyDataset(object):
 		else:
 			index = range(len(self.data))
 
+
+		if 'size' in kargs:
+			kargs['percentile'] = True
+
+
 		for idx, img in enumerate(self.data[index]):
 			if 'sequence' in data_type:
-				if 'size' in kargs:
-					kargs['percentile'] = True
 				tmp = list()
-				for user in getattr(self, data_type)[idx]:
+				data = getattr(self, data_type)[idx]
+				data = np.array(data)
+				if 'users' in kargs:
+					users_idx = kargs['users']
+				else:
+					users_idx = range(len(data))
+				
+				for user in data[users_idx]:
 					user = np.array(user)
 					if user.size == 0:
 						continue
@@ -254,13 +264,23 @@ class SaliencyDataset(object):
 			elif data_type == 'stimuli_path':
 				tmp = os.path.join(self.directory, img['stimuli'])
 			elif data_type == 'fixation':
+				data = self.sequence[index[idx]]
+				data = np.array(data)
+
 				im_h, im_w = img['img_size']
 				if 'size' in kargs:
 					h, w = kargs['size']
 				else:
 					h, w = im_h, im_w
+
+				if 'users' in kargs:
+					users_idx = kargs['users']
+				else:
+					users_idx = range(len(data))
+
 				tmp = np.zeros((h,w))
-				for user in self.sequence[index[idx]]:
+
+				for user_idx, user in enumerate(data[users_idx]):
 					for fix in user:
 						if (fix[1] < im_h) and (fix[0] < im_w):
 							if (fix[1] > 0) and (fix[0] > 0):
@@ -274,15 +294,24 @@ class SaliencyDataset(object):
 								tmp[y,x] = 1
 
 			elif data_type == 'fixation_time':
+				data = self.sequence[index[idx]]
+				data = np.array(data)
+
 				im_h, im_w = img['img_size']
 				if 'size' in kargs:
 					h, w = kargs['size']
 				else:
 					h, w = im_h, im_w
 
+				if 'users' in kargs:
+					users_idx = kargs['users']
+				else:
+					users_idx = range(len(data))
+
 				user_count = len(self.sequence[idx])
 				tmp = np.zeros((user_count, h, w), dtype=np.float32)
-				for user_idx, user in enumerate(self.sequence[index[idx]]):
+
+				for user_idx, user in enumerate(data[users_idx]):
 					for fix in user:
 						if (fix[1] < im_h) and (fix[0] < im_w):
 							if (fix[1] > 0) and (fix[0] > 0):
@@ -300,14 +329,23 @@ class SaliencyDataset(object):
 				tmp[np.isnan(tmp)] = 0
 
 			elif data_type == 'fixation_dw':
+				data = self.sequence[index[idx]]
+				data = np.array(data)
 				im_h, im_w = img['img_size']
 				if 'size' in kargs:
 					h, w = kargs['size']
 				else:
 					h, w = im_h, im_w
+
+				if 'users' in kargs:
+					users_idx = kargs['users']
+				else:
+					users_idx = range(len(data))
+
 				user_count = len(self.sequence[idx])
 				tmp = np.zeros((user_count, h, w), dtype=np.float32)
-				for user_idx, user in enumerate(self.sequence[index[idx]]):
+
+				for user_idx, user in enumerate(data[users_idx]):
 					user = np.array(user)
 					for fix in user:
 						if (fix[1] < im_h) and (fix[0] < im_w):
@@ -322,7 +360,7 @@ class SaliencyDataset(object):
 								tmp[user_idx, y, x] = (fix[2] / user[:,2].sum())
 				tmp[tmp == 0] = np.nan
 				tmp = np.nanmean(tmp, axis=0)
-				tmp[np.isnan(tmp)] = 0				
+				tmp[np.isnan(tmp)] = 0
 
 			else:
 				try:
