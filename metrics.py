@@ -82,9 +82,9 @@ def NSS(saliency_map, fixation_map):
 		:return score: float : score
 
 	"""
-	if isinstance(saliency_map, np.ndarray):
+	if not isinstance(saliency_map, np.ndarray):
 		saliency_map = np.array(saliency_map)
-	if isinstance(fixation_map, np.ndarray):
+	if not isinstance(fixation_map, np.ndarray):
 		fixation_map = np.array(fixation_map)
 
 	if saliency_map.size != fixation_map.size:
@@ -114,12 +114,12 @@ def CC(saliency_map, saliency_map_gt):
 		:return score: float : score
 
 	"""
-	if isinstance(saliency_map, np.ndarray):
+	if not isinstance(saliency_map, np.ndarray):
 		saliency_map = np.array(saliency_map, dtype=np.float32)
 	elif saliency_map.dtype != np.float32:
 		saliency_map = saliency_map.astype(np.float32)
 
-	if isinstance(saliency_map_gt, np.ndarray):
+	if not isinstance(saliency_map_gt, np.ndarray):
 		saliency_map_gt = np.array(saliency_map_gt, dtype=np.float32)
 	elif saliency_map.dtype != np.float32:
 		saliency_map_gt = saliency_map_gt.astype(np.float32)
@@ -162,12 +162,12 @@ def KLdiv(saliency_map, saliency_map_gt):
 
 	"""
 
-	if isinstance(saliency_map, np.ndarray):
+	if not isinstance(saliency_map, np.ndarray):
 		saliency_map = np.array(saliency_map, dtype=np.float32)
 	elif saliency_map.dtype != np.float32:
 		saliency_map = saliency_map.astype(np.float32)
 
-	if isinstance(saliency_map_gt, np.ndarray):
+	if not isinstance(saliency_map_gt, np.ndarray):
 		saliency_map_gt = np.array(saliency_map_gt, dtype=np.float32)
 	elif fixation_map.dtype != np.float32:
 		saliency_map_gt = saliency_map_gt.astype(np.float32)
@@ -255,13 +255,91 @@ def SAUC(saliency_map, fixation_map, shuf_map=np.zeros((480,640)), step_size=.01
 	return score
 
 
+
+def IG(saliency_map, fixation_map, baseline_map=np.zeros((480,640))):
+	"""
+		please cite:
+
+		calculates Information gain score.
+
+		:param salinecy_map : predicted saliency map
+		:param fixation_map : ground truth saliency map.
+		:param baseline_fixation_map : a baseline fixtion map
+		:return score: int : score
+
+	"""
+	if not isinstance(saliency_map, np.ndarray):
+		saliency_map = np.array(saliency_map, dtype=np.float32)
+	elif saliency_map.dtype != np.float32:
+		saliency_map = saliency_map.astype(np.float32)
+
+	if not isinstance(fixation_map, np.ndarray):
+		fixation_map = np.array(fixation_map, dtype=np.float32)
+	elif fixation_map.dtype != np.float32:
+		fixation_map = fixation_map.astype(np.float32)
+
+
+	if not isinstance(baseline_map, np.ndarray):
+		baseline_map = np.array(baseline_map, dtype=np.float32)
+	elif fixation_map.dtype != np.float32:
+		baseline_map = baseline_map.astype(np.float32)
+
+
+	saliency_map = (saliency_map - saliency_map.min()) \
+						/ (saliency_map.max() - saliency_map.min())
+
+	saliency_map = saliency_map / saliency_map.sum()
+
+	baseline_map = (baseline_map - baseline_map.min()) \
+						/ (baseline_map.max() - baseline_map.min())
+	baseline_map = baseline_map / baseline_map.sum()
+
+	fixs = fixation_map.astype(np.bool)
+
+	EPS = np.finfo(np.float32).eps
+
+	return (np.log2(EPS + saliency_map[fixs]) \
+				- np.log2(EPS + baseline_map[fixs])).mean()
+
+def SIM(saliency_map, saliency_map_gt):
+	"""
+		Compute similarity score.
+
+		:param saliency_map : predicted saliency map
+		:param fixation_map : ground truth saliency map.
+		:return score: float : score
+
+	"""
+
+	if not isinstance(saliency_map, np.ndarray):
+		saliency_map = np.array(saliency_map, dtype=np.float32)
+	elif saliency_map.dtype != np.float32:
+		saliency_map = saliency_map.astype(np.float32)
+
+	if not isinstance(saliency_map_gt, np.ndarray):
+		saliency_map_gt = np.array(saliency_map_gt, dtype=np.float32)
+	elif fixation_map.dtype != np.float32:
+		saliency_map_gt = saliency_map_gt.astype(np.float32)
+
+	saliency_map = (saliency_map - saliency_map.min()) \
+						/ (saliency_map.max() - saliency_map.min())
+	saliency_map = saliency_map / saliency_map.sum()
+
+	saliency_map_gt = (saliency_map_gt - saliency_map_gt.min()) \
+						/ (saliency_map_gt.max() - saliency_map_gt.min())
+	saliency_map_gt = saliency_map_gt / saliency_map_gt.sum()
+
+	return np.minimum(saliency_map, saliency_map_gt).sum()
+
+
+
 def euclidean_distance(P,Q, **kwargs):
-	if isinstance(P, np.ndarray):
+	if not isinstance(P, np.ndarray):
 		P = np.array(P, dtype=np.float32)
 	elif P.dtype != np.float32:
 		P = P.astype(np.float32)
 
-	if isinstance(Q, np.ndarray):
+	if not isinstance(Q, np.ndarray):
 		Q = np.array(Q, dtype=np.float32)
 	elif Q.dtype != np.float32:
 		Q = Q.astype(np.float32)
@@ -273,12 +351,12 @@ def euclidean_distance(P,Q, **kwargs):
 
 
 def hausdorff_distance(P, Q, **kwargs):
-	if isinstance(P, np.ndarray):
+	if not isinstance(P, np.ndarray):
 		P = np.array(P, dtype=np.float32)
 	elif P.dtype != np.float32:
 		P = P.astype(np.float32)
 
-	if isinstance(Q, np.ndarray):
+	if not isinstance(Q, np.ndarray):
 		Q = np.array(Q, dtype=np.float32)
 	elif Q.dtype != np.float32:
 		Q = Q.astype(np.float32)
@@ -290,12 +368,12 @@ def frechet_distance(P, Q, **kwargs):
 	Algorithm: http://www.kr.tuwien.ac.at/staff/eiter/et-archive/cdtr9464.pdf
 	P and Q are arrays of 2-element arrays (points)
 	"""
-	if isinstance(P, np.ndarray):
+	if not isinstance(P, np.ndarray):
 		P = np.array(P, dtype=np.float32)
 	elif P.dtype != np.float32:
 		P = P.astype(np.float32)
 
-	if isinstance(Q, np.ndarray):
+	if not isinstance(Q, np.ndarray):
 		Q = np.array(Q, dtype=np.float32)
 	elif Q.dtype != np.float32:
 		Q = Q.astype(np.float32)
@@ -533,5 +611,65 @@ def ScanMatch(matlab_engine, P,Q, height, width, Xbins=12, Ybins = 8,
 	except Exception as e:
 		print(e)
 		return np.nan
+
+
+
+
+def linear_distance(P,Q, height, width, PR=None, QR=None, **kwargs):
+	"""
+		Linear Distance
+		https://link.springer.com/content/pdf/10.3758%2Fs13428-014-0550-3.pdf
+
+	 	PR and QR are two random scanpaths
+	"""
+
+	if not isinstance(P, np.ndarray):
+		P = np.array(P, dtype=np.float32)
+	elif P.dtype != np.float32:
+		P = P.astype(np.float32)
+
+	if not isinstance(Q, np.ndarray):
+		Q = np.array(Q, dtype=np.float32)
+	elif Q.dtype != np.float32:
+		Q = Q.astype(np.float32)
+
+	if (PR is None):
+		PR = np.random.rand((8, 2)) * (width, height)
+	elif not isinstance(PR, np.ndarray):
+		PR = np.array(PR, dtype=np.float32)
+
+	if (QR is None):
+		QR = np.random.rand((8, 2)) * (width, height)
+	elif not isinstance(QR, np.ndarray):
+		QR = np.array(QR, dtype=np.float32)
+
+	def D(P, Q, height, width):
+		"""
+
+		"""
+		fix_count_p = P.shape[0]
+		fix_count_q = Q.shape[0]
+		dist = np.zeros((fix_count_p, fix_count_q))
+		for i in range(fix_count_p):
+			for j in range(fix_count_q):
+				dist[i,j] = euclidean(P[i], Q[j])
+
+		d1i = np.min(dist, axis=1)
+		d2j = np.min(dist, axis=0)
+
+		result = (fix_count_q * np.power(d2j,2).sum()) + \
+						(fix_count_p * np.power(d1i,2).sum())
+
+		mean = 2 * fix_count_p * fix_count_q * (height**2 + width**2)
+
+		return result / mean
+
+	d = D(P, height, width, Xbins, Ybins)
+	dr = D(Q, height, width, Xbins, Ybins)
+
+	return 1 - (100 * ( d / dr))
+
+
+
 
 

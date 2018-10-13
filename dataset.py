@@ -327,9 +327,9 @@ class SaliencyDataset(object):
 			else:
 				try:
 					if data_type in self.data_type:
-						tmp = getattr(self, data_type) 
+						tmp = getattr(self, data_type)[index[idx]]
 					else:
-						tmp = self.data[data_type]
+						tmp = self.data[data_type][index[idx]]
 				except Exception as x:
 					return False
 			result.append(tmp)

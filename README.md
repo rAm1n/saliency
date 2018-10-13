@@ -126,6 +126,8 @@ Eye-tracking data and specifically scanpath always have errors and out of bounda
 |NSS          |  |            |
 |CC          |  |            |
 |KLdiv          | |     |
+|SIM          | |     |               
+|IG          | |     |               
 |euclidean_distance          |            |           |
 |frechet_distance          || |
 |levenshtein_distance          || |
