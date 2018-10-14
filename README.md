@@ -33,9 +33,9 @@ At this moment, the following datasets are covered. I have plan to add more and 
 |MIT1003          |Tilke Judd, Krista Ehinger, Fredo Durand, Antonio Torralba. [Learning to Predict where Humans Look](http://people.csail.mit.edu/tjudd/WherePeopleLook/Docs/wherepeoplelook.pdf)            |            |
 |LOWRES          |Tilke Judd, Fredo Durand, Antonio Torralba. [Fixations on Low-Resolution Images](http://www.journalofvision.org/content/11/4/14.full.pdf+html)            |           |
 |PASCAL          |Yin Li , Xiaodi Hou , Christof Koch , James M. Rehg , Alan L. Yuille.[The Secrets of Salient Object Segmentation](http://openaccess.thecvf.com/content_cvpr_2014/papers/Li_The_Secrets_of_2014_CVPR_paper.pdf)            |Segmentation masks from VOC10            |
-|SALICON          |Ming Jiang*, Shengsheng Huang*, Juanyong Duan*, Qi Zhaom. [SALICON: Saliency in Context](http://www-users.cs.umn.edu/~qzhao/publications/pdf/salicon_cvpr15.pdf) |Subset of MSCOCO          |
+|SALICON          |Ming Jiang*, Shengsheng Huang*, Juanyong Duan, Qi Zhaom. [SALICON: Saliency in Context](http://www-users.cs.umn.edu/~qzhao/publications/pdf/salicon_cvpr15.pdf) |Subset of MSCOCO          |
 |EMOD          |S. Fan, Z. Shen, M. Jiang, B. Koenig, J. Xu, M. Kankanhali, Q.Zhao. [Emotional Attention](https://nus-sesame.top/emotionalattention/) |emotion, object semantic categories, and high-level perceptual           |  
-
+|POET          | Dim P. Papadopoulos, Alasdair D. F. Clarke, Frank Keller, Vittorio Ferrari[Pascal Objects Eye Tracking (POET) ](http://calvin.inf.ed.ac.uk/datasets/poet-dataset/)            |Segmentation masks from VOC10(TODO)            |               
 
 
 **Let's get started**:
@@ -68,7 +68,7 @@ A jupyter notebook version of this tutorial has been added:  [help.ipynb](https:
 	
 	# get list of currenly converted datsets.
 	dataset.dataset_names()
-	['TORONTO', 'CAT2000', 'CROWD', 'SALICON', 'LOWRES', 'KTH', 'OSIE', 'MIT1003', 'PASCAL', 'EMOD']
+	['TORONTO', 'CAT2000', 'CROWD', 'SALICON', 'LOWRES', 'KTH', 'OSIE', 'MIT1003', 'PASCAL', 'EMOD', 'POET']
 
 	
 	# Load your favourite dataset.

@@ -25,7 +25,7 @@ CONFIG = {
 
 
 DATASETS = ['TORONTO', 'CAT2000', 'CROWD', 'SALICON', 'LOWRES',\
-		 'KTH', 'OSIE', 'MIT1003', 'PASCAL', 'EMOD']
+		 'KTH', 'OSIE', 'MIT1003', 'PASCAL', 'EMOD', 'POET']
 
 
 class SaliencyDataset(object):
