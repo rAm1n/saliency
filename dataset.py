@@ -25,7 +25,8 @@ CONFIG = {
 
 
 DATASETS = ['TORONTO', 'CAT2000', 'CROWD', 'SALICON', 'LOWRES',\
-		 'KTH', 'OSIE', 'MIT1003', 'PASCAL', 'EMOD', 'POET']
+		 'KTH', 'OSIE', 'MIT1003', 'PASCAL-S', 'EMOD', 'POET',\
+		 'PASCAL-KYUN', 'SUN09']
 
 
 class SaliencyDataset(object):
@@ -203,9 +204,11 @@ class SaliencyDataset(object):
 					users_idx = kargs['users']
 				else:
 					users_idx = range(len(data))
-				
+
 				for user in data[users_idx]:
 					user = np.array(user)
+					mask = np.isnan(user).all(axis=1)
+					user = user[~mask]
 					if user.size == 0:
 						continue
 					if 'percentile' in kargs:
