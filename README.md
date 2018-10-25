@@ -3,6 +3,8 @@
 
 This repository contains an API for saliency prediction datasets along with most common evaluation metrics. The code will download required files from the website of the original publisher and will prepare everything for easier use.
 
+
+
 ### **What do I need?**
  -   Python (2.7, 3.4, 3.5, 3.6)
  -   Python package manager (pip)
@@ -19,12 +21,14 @@ This repository contains an API for saliency prediction datasets along with most
 2. Install required packages using pip
              `pip install -r requirements`
 
+3. Follow the tutorial:  [help.ipynb](https://github.com/rAm1n/saliency/blob/master/help.ipynb)
+
 ### **Datasets**
 
 At this moment, the following datasets are covered. I have plan to add more and complete this list. Some of them have other very useful annotations but given the variety of  types, I have decided to not include external information at this point.
 
 
-|         Datasets   &nbsp; &nbsp;    | Author  | paper                         |Extra note                      |
+|         Datasets       | Author  | paper                         |Extra note                      |
 |----------------|---------------|----------------|-----------------------------|
 |TORONTO| Neil Bruce, John K. Tsotsos. |  [Attention based on information maximization ](http://journalofvision.org/7/9/950/)            |           |
 |CAT2000          |Ali Borji, Laurent Itti. | [CAT2000: A Large Scale Fixation Dataset for Boosting Saliency Research ](http://arxiv.org/abs/1505.03581)            ||
@@ -41,10 +45,11 @@ At this moment, the following datasets are covered. I have plan to add more and 
 |POET          | Dim P. Papadopoulos, et al. | [Pascal Objects Eye Tracking (POET) ](http://calvin.inf.ed.ac.uk/datasets/poet-dataset/)            |Segmentation masks from VOC10(TODO)            |
 
 
-**Let's get started**:
-A jupyter notebook version of this tutorial has been added:  [help.ipynb](https://github.com/rAm1n/saliency/blob/master/help.ipynb)
+<!-- **Let's get started**: -->
 
+<!-- A jupyter notebook version of this tutorial has been added:  [help.ipynb](https://github.com/rAm1n/saliency/blob/master/help.ipynb) -->
 
+<!--
 
 	"""
 		Assuming that:
@@ -115,15 +120,13 @@ Eye-tracking data and specifically scanpath always have errors and out of bounda
 	sequence = dataset.get('sequence', percentile=True, modify='remove')
 	# or bring them back right inside boundary.
 	sequence = dataset.get('sequence', percentile=True, modify='fix')
+ -->
 
 
-**Note**: To make things run smoother, scanpaths has already been preprocessed and stored on dropbox. If you own one of the datasets and you don't like your data to be included in this package, please send a short message to  *fahimi72 At gmail* and it will be taken care of.
+### ** Evalulation and Metrics**
 
 
-
-### **Metrics**
-
-
+#### Static Metrics
 
 
 |         Metrics       |Citation                          |Extra note                         |
@@ -131,19 +134,31 @@ Eye-tracking data and specifically scanpath always have errors and out of bounda
 |AUC | |           |
 |SAUC  |  ||
 |NSS          |  |            |
-|CC          |  |            |
-|KLdiv          | |     |
+|CC          |  |            |                                                                                                                                |KLdiv          | |     |
 |SIM          | |     |
 |IG          | |     |
+
+
+#### Sequential Metrics
+
+
+|         Metrics       |Citation                          |Extra note                         |
+|----------------|-------------------------------|-----------------------------|
 |euclidean_distance          |            |           |
-|frechet_distance          || |
-|levenshtein_distance          || |
-|DTW          | |  |
-|time_delay_embedding_distance          |Wei Wang, Cheng Chen, Yizhou Wang. [Simulating human saccadic scanpaths on natural images](https://ieeexplore.ieee.org/document/5995423/) | Adopted from [Fixaton](https://github.com/dariozanca/FixaTons)|
-MultiMatch          |Jarodzka, H., Holmqvist, K., & Nystrom, M. [A Vector-based, Multidimensional Scanpath Similarity Measure.](https://dl.acm.org/citation.cfm?id=1743718)| |
+|mannan_distance          |            |           |
+|levenshtein_distance          | | |
 |ScanMatch          | F. Cristino, S. Mathôt, J. Theeuwes & I. D. Gilchrist. [ScanMatch: A Novel Method for Comparing Fixation Sequences.](https://seis.bristol.ac.uk/~psidg/ScanMatch/CMTG2010.pdf) | |
+|linear_distance | | |
+|REC | | |
+|DET | | |
+|LAM | | |
+|CORM | | |
+|hausdorff_distance          || |
+|frechet_distance          || |
+|DTW          | |  |
+|TDE          |Wei Wang, Cheng Chen, Yizhou Wang. [Simulating human saccadic scanpaths on natural images](https://ieeexplore.ieee.org/document/5995423/) | Adopted from [Fixaton](https://github.com/dariozanca/FixaTons)|
+MultiMatch          |Jarodzka, H., Holmqvist, K., & Nystrom, M. [A Vector-based, Multidimensional Scanpath Similarity Measure.](https://dl.acm.org/citation.cfm?id=1743718)| |
 
-
-
+**Note**: To make things run smoother, scanpaths has already been preprocessed and stored on dropbox. If you own one of the datasets and you don't like your data to be included in this package, please send a short message to  *fahimi72 At gmail* and it will be taken care of. we do not own any of the data and The copyrights belongs to the original publisher of the datasets.
 
 

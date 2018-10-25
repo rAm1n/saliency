@@ -7,13 +7,15 @@ import numpy as np
 from scipy.misc import imresize
 from scipy.stats import entropy
 from scipy.spatial.distance import directed_hausdorff, euclidean
+from scipy.stats import pearsonr
 import scipy.io as sio
+
 
 from fastdtw import fastdtw
 import editdistance
 import requests, zipfile, io
 
-
+from utils import scanpath_to_string, global_align
 
 try:
 	import matlab
@@ -351,6 +353,25 @@ def euclidean_distance(P,Q, **kwargs):
 
 
 
+def mannan_distance(P, Q, **kwargs):
+	"""
+		Mannan Linear distance.
+
+	"""
+	P = np.array(P, dtype=np.float32)
+	Q = np.array(Q, dtype=np.float32)
+	dist = np.zeros((P.shape[0], Q.shape[0]))
+
+	for idx_1, fix_1 in np.ndenumerate(P):
+		for idx_2, fix_2 in np.ndenumerate(Q):
+			dist[idx_1, idx_2] = euclidean(fix_1, fix_2)
+
+	return (1 / (P.shape[0] + Q.shape[0])) * \
+				(np.power(dist.min(axis=0).sum(),2) + \
+					np.power(dist.min(axis=1).sum(),2))
+
+
+
 def hausdorff_distance(P, Q, **kwargs):
 	if not isinstance(P, np.ndarray):
 		P = np.array(P, dtype=np.float32)
@@ -379,8 +400,6 @@ def frechet_distance(P, Q, **kwargs):
 	elif Q.dtype != np.float32:
 		Q = Q.astype(np.float32)
 
-	def euc_dist(pt1,pt2):
-		return np.sqrt((pt2[0]-pt1[0])*(pt2[0]-pt1[0])+(pt2[1]-pt1[1])*(pt2[1]-pt1[1]))
 
 	def _c(ca,i,j,P,Q):
 		if ca[i,j] > -1:
@@ -388,13 +407,13 @@ def frechet_distance(P, Q, **kwargs):
 		elif i == 0 and j == 0:
 			ca[i,j] = euc_dist(P[0],Q[0])
 		elif i > 0 and j == 0:
-			ca[i,j] = max(_c(ca,i-1,0,P,Q),euc_dist(P[i],Q[0]))
+			ca[i,j] = max(_c(ca,i-1,0,P,Q), euclidean(P[i],Q[0]))
 		elif i == 0 and j > 0:
-			ca[i,j] = max(_c(ca,0,j-1,P,Q),euc_dist(P[0],Q[j]))
+			ca[i,j] = max(_c(ca,0,j-1,P,Q), euclidean(P[0],Q[j]))
 		elif i > 0 and j > 0:
 			ca[i,j] = max(
 						min(_c(ca,i-1,j,P,Q), _c(ca,i-1,j-1,P,Q), _c(ca,i,j-1,P,Q)),
-							euc_dist(P[i],Q[j]))
+							euclidean(P[i],Q[j]))
 		else:
 			ca[i,j] = float("inf")
 		return ca[i,j]
@@ -408,29 +427,11 @@ def levenshtein_distance(P,Q, height, width, Xbins=12, Ybins = 8, **kwargs):
 	"""
 		Levenshtein distance
 	"""
-	def _scanpath_to_string(scanpath, height, width, Xbins, Ybins):
-		"""
-				a b c d ...
-			A
-			B
-			C
-			D
 
-			returns Aa
-		"""
-		height_step, width_step = height//Ybins, width//Xbins
-		string = ''
-		for i in range(scanpath.shape[0]):
-			fixation = scanpath[i].astype(np.int32)
-			corrs_x = chr(65 + fixation[1]//height_step)
-			corrs_y = chr(97 + fixation[0]//width_step)
-			string += (corrs_x + corrs_y)
-		return string
+	P, P_num = _scanpath_to_string(P, height, width, Xbins, Ybins, 0)
+	Q, Q_num = _scanpath_to_string(Q, height, width, Xbins, Ybins, 0)
 
-	str_1 = _scanpath_to_string(P, height, width, Xbins, Ybins)
-	str_2 = _scanpath_to_string(Q, height, width, Xbins, Ybins)
-
-	return editdistance.eval(str_1, str_2)
+	return editdistance.eval(P, Q)
 
 
 
@@ -439,7 +440,7 @@ def DTW(P, Q, **kwargs):
 	return dist
 
 
-def time_delay_embedding_distance(
+def TDE(
 		P,
 		Q,
 
@@ -544,8 +545,11 @@ def MultiMatch(matlab_engine, P, Q, height, width, check=False, **kwargs):
 		print(e)
 		return [np.nan, np.nan, np.nan, np.nan, np.nan]
 
-def ScanMatch(matlab_engine, P,Q, height, width, Xbins=12, Ybins = 8,
-				ScanMatchInfo='ScanMatchInfo_OSIE.mat', **kwargs):
+
+
+
+def ScanMatch(P, Q, height, width, Xbins=12, Ybins=8, Tbins=0,
+				SubMatrix=None, threshold=3.5, GapValue=0 ,**kwargs):
 	"""
 		ScanMatch
 		You need to creat ScanMatchInfo file before hand in the matlab yourself.
@@ -555,60 +559,40 @@ def ScanMatch(matlab_engine, P,Q, height, width, Xbins=12, Ybins = 8,
 
 	"""
 
+	def _create_sub_matrix(Xbins, Ybins, threshold):
 
-	def _load_scanmatch_info(matlab_engine, ScanMatchInfo):
-		try:
-			matlab_engine.load(ScanMatchInfo, nargout=0)
-			return True
+		mat = np.zeros((Xbins * Ybins, Xbins * Ybins))
+		idx_i = 0
+		idx_j = 0
 
-		except Exception as e:
-			print(e)
-			return False
+		for i in range(Ybins):
+			for j in range(Xbins):
+				for ii in range(Ybins):
+					for jj in range(Xbins):
+						mat[idx_i, idx_j] = np.sqrt((j-jj)**2 + (i-ii)**2)
+						idx_i +=1
+				idx_i =0
+				idx_j += 1
 
-	def _scanpath_to_string(scanpath, height, width, Xbins, Ybins):
-		"""
-				a b c d ...
-			A
-			B
-			C
-			D
-
-			returns Aa
-		"""
-		height_step, width_step = height//Ybins, width//Xbins
-		string = ''
-		for i in range(scanpath.shape[0]):
-			fixation = scanpath[i].astype(np.int32)
-			corrs_x = chr(97 + fixation[1]//height_step)
-			corrs_y = chr(65 + fixation[0]//width_step)
-			string += (corrs_x + corrs_y)
-		return string
-
-
+		max_sub = mat.max()
+		return np.abs(mat - max_sub) - (max_sub - threshold)
 
 	try:
-		if 'matlab' not in sys.modules:
-			print('This function requires MATLAB API installed.\
-					cd MATLAB_ROOT/extern/engines/python/ \
-					sudo python setup.py install')
-			return
 
-		P = _scanpath_to_string(P, height, width, Xbins, Ybins)
-		Q = _scanpath_to_string(Q, height, width, Xbins, Ybins)
+		P = np.array(P, dtype=np.float32)
+		Q = np.array(Q, dtype=np.float32)
 
-		# loading variables in matlab
-		matlab_engine.workspace['seq1'] = P
-		matlab_engine.workspace['seq2'] = Q
+		P, P_num = scanpath_to_string(P, height, width, Xbins, Ybins, Tbins)
+		Q, Q_num = scanpath_to_string(Q, height, width, Xbins, Ybins, Tbins)
 
-		if 'ScanMatchInfo' not in matlab_engine.eval('who'):
-			if not _load_scanmatch_info(matlab_engine, ScanMatchInfo):
-				print("The MAT File doesn't exist")
-				return False
+		if SubMatrix is None:
+			SubMatrix = _create_sub_matrix(Xbins, Ybins, threshold)
 
+		score = global_align(P_num, Q_num, SubMatrix, GapValue)
+		scale = SubMatrix.max() * max(len(P_num), len(Q_num))
 
-		return matlab_engine.eval('ScanMatch(seq1, seq2, ScanMatchInfo)', stdout=StringIO())
-		# return matlab_engine.ScanMatch(P, Q, stdout=StringIO())
-		# return np.array(result).squeeze()
+		return score / scale
+
 	except Exception as e:
 		print(e)
 		return np.nan
@@ -673,4 +657,236 @@ def linear_distance(P,Q, height, width, PR=None, QR=None, **kwargs):
 
 
 
+def REC(P,Q, threshold, **kwargs):
+	"""
+		Cross-recurrence
+		https://link.springer.com/content/pdf/10.3758%2Fs13428-014-0550-3.pdf
 
+	"""
+	def _C(P, Q, threshold):
+		assert (P.shape == Q.shape)
+		shape = P.shape[0]
+		c = np.zeros((shape, shape))
+
+		for i in range(shape):
+			for j in range(shape):
+				if euclidean(P[i], Q[j]) < threshold:
+					c[i,j] = 1
+		return c
+
+
+	P = np.array(P, dtype=np.float32)
+	Q = np.array(Q, dtype=np.float32)
+	min_len = P.shape[0] if (P.shape[0] < Q.shape[0]) else Q.shape[0]
+	P = P[:min_len,:2]
+	Q = Q[:min_len,:2]
+
+	c = _C(P, Q, threshold)
+	R = np.triu(c,1).sum()
+	return 100 * (2 * R) / (min_len * (min_len - 1))
+
+
+
+
+
+
+def DET(P,Q, threshold, **kwargs):
+	"""
+
+		https://link.springer.com/content/pdf/10.3758%2Fs13428-014-0550-3.pdf
+
+	"""
+	def _C(P, Q, threshold):
+		assert (P.shape == Q.shape)
+		shape = P.shape[0]
+		c = np.zeros((shape, shape))
+
+		for i in range(shape):
+			for j in range(shape):
+				if euclidean(P[i], Q[j]) < threshold:
+					c[i,j] = 1
+		return c
+
+
+	P = np.array(P, dtype=np.float32)
+	Q = np.array(Q, dtype=np.float32)
+	min_len = P.shape[0] if (P.shape[0] < Q.shape[0]) else Q.shape[0]
+	P = P[:min_len,:2]
+	Q = Q[:min_len,:2]
+
+	c = _C(P, Q, threshold)
+	R = np.triu(c,1).sum()
+
+	counter = 0
+	for i in range(1,min_len):
+		data = c.diagonal(i)
+		data = ''.join([str(item) for item in data])
+		counter += len(re.findall('1{2,}', data))
+
+
+	return 100 * (counter / R)
+
+
+def LAM(P,Q, threshold, **kwargs):
+	"""
+
+		https://link.springer.com/content/pdf/10.3758%2Fs13428-014-0550-3.pdf
+
+	"""
+	def _C(P, Q, threshold):
+		assert (P.shape == Q.shape)
+		shape = P.shape[0]
+		c = np.zeros((shape, shape))
+
+		for i in range(shape):
+			for j in range(shape):
+				if euclidean(P[i], Q[j]) < threshold:
+					c[i,j] = 1
+		return c
+
+
+	P = np.array(P, dtype=np.float32)
+	Q = np.array(Q, dtype=np.float32)
+	min_len = P.shape[0] if (P.shape[0] < Q.shape[0]) else Q.shape[0]
+	P = P[:min_len,:2]
+	Q = Q[:min_len,:2]
+
+	c = _C(P, Q, threshold)
+	R = np.triu(c,1).sum()
+
+	HL = 0
+	HV = 0
+
+	for i in range(N):
+		data = c[i,:]
+		data = ''.join([str(item) for item in data])
+		HL += len(re.findall('1{2,}', data))
+
+	for j in range(N):
+		data = c[:,j]
+		data = ''.join([str(item) for item in data])
+		HV += len(re.findall('1{2,}', data))
+
+	return 100 * ((HL + HV) / (2 * R))
+
+
+
+
+def CORM(P,Q, threshold, **kwargs):
+	"""
+
+		https://link.springer.com/content/pdf/10.3758%2Fs13428-014-0550-3.pdf
+
+	"""
+	def _C(P, Q, threshold):
+		assert (P.shape == Q.shape)
+		shape = P.shape[0]
+		c = np.zeros((shape, shape))
+
+		for i in range(shape):
+			for j in range(shape):
+				if euclidean(P[i], Q[j]) < threshold:
+					c[i,j] = 1
+		return c
+
+
+	P = np.array(P, dtype=np.float32)
+	Q = np.array(Q, dtype=np.float32)
+	min_len = P.shape[0] if (P.shape[0] < Q.shape[0]) else Q.shape[0]
+	P = P[:min_len,:2]
+	Q = Q[:min_len,:2]
+
+	c = _C(P, Q, threshold)
+	R = np.triu(c,1).sum()
+
+	counter = 0
+
+	for i in range(0, min_len-1):
+		for j in range(i+1, min_len):
+			couter += (j-i) * c[i,j]
+
+	return 100 * (counter / ((min_len - 1) * R))
+
+
+# def temporal_correlation(P,Q, **kwargs):
+# 	P = np.array(P, dtype=np.float32)
+# 	Q = np.array(Q, dtype=np.float32)
+
+# 	min_len = P.shape[0] if (P.shape[0] < Q.shape[0]) else Q.shape[0]
+
+# 	P = P[:min_len]
+# 	Q = Q[:min_len]
+
+# 	return (pearsonr(P[:,0], Q[:,0]) + pearsonr(P[:,1], Q[:,1])) * 0.5
+
+
+
+
+# def ScanMatch(matlab_engine, P,Q, height, width, Xbins=12, Ybins = 8,
+# 				ScanMatchInfo='ScanMatchInfo_OSIE.mat', **kwargs):
+# 	"""
+# 		ScanMatch
+# 		You need to creat ScanMatchInfo file before hand in the matlab yourself.
+
+# 		for more information have look at:
+# 			https://seis.bristol.ac.uk/~psidg/ScanMatch/
+
+# 	"""
+
+
+# 	def _load_scanmatch_info(matlab_engine, ScanMatchInfo):
+# 		try:
+# 			matlab_engine.load(ScanMatchInfo, nargout=0)
+# 			return True
+
+# 		except Exception as e:
+# 			print(e)
+# 			return False
+
+# 	def _scanpath_to_string(scanpath, height, width, Xbins, Ybins):
+# 		"""
+# 				a b c d ...
+# 			A
+# 			B
+# 			C
+# 			D
+
+# 			returns Aa
+# 		"""
+# 		height_step, width_step = height//Ybins, width//Xbins
+# 		string = ''
+# 		for i in range(scanpath.shape[0]):
+# 			fixation = scanpath[i].astype(np.int32)
+# 			corrs_x = chr(97 + fixation[1]//height_step)
+# 			corrs_y = chr(65 + fixation[0]//width_step)
+# 			string += (corrs_x + corrs_y)
+# 		return string
+
+
+
+# 	try:
+# 		if 'matlab' not in sys.modules:
+# 			print('This function requires MATLAB API installed.\
+# 					cd MATLAB_ROOT/extern/engines/python/ \
+# 					sudo python setup.py install')
+# 			return
+
+# 		P = _scanpath_to_string(P, height, width, Xbins, Ybins)
+# 		Q = _scanpath_to_string(Q, height, width, Xbins, Ybins)
+
+# 		# loading variables in matlab
+# 		matlab_engine.workspace['seq1'] = P
+# 		matlab_engine.workspace['seq2'] = Q
+
+# 		if 'ScanMatchInfo' not in matlab_engine.eval('who'):
+# 			if not _load_scanmatch_info(matlab_engine, ScanMatchInfo):
+# 				print("The MAT File doesn't exist")
+# 				return False
+
+
+# 		return matlab_engine.eval('ScanMatch(seq1, seq2, ScanMatchInfo)', stdout=StringIO())
+# 		# return matlab_engine.ScanMatch(P, Q, stdout=StringIO())
+# 		# return np.array(result).squeeze()
+# 	except Exception as e:
+# 		print(e)
+# 		return np.nan
