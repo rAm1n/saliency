@@ -15,7 +15,7 @@ from fastdtw import fastdtw
 import editdistance
 import requests, zipfile, io
 
-from utils import scanpath_to_string, global_align
+from .utils import scanpath_to_string, global_align
 
 try:
 	import matlab
@@ -371,6 +371,23 @@ def mannan_distance(P, Q, **kwargs):
 					np.power(dist.min(axis=1).sum(),2))
 
 
+# def eyenalysis(P, Q, **kwargs):
+# 	"""
+# 		Mannan Linear distance.
+
+# 	"""
+# 	P = np.array(P, dtype=np.float32)
+# 	Q = np.array(Q, dtype=np.float32)
+# 	dist = np.zeros((P.shape[0], Q.shape[0]))
+
+# 	for idx_1, fix_1 in np.ndenumerate(P):
+# 		for idx_2, fix_2 in np.ndenumerate(Q):
+# 			dist[idx_1, idx_2] = euclidean(fix_1, fix_2)
+
+# 	return (1 / (P.shape[0] + Q.shape[0])) * \
+# 				(np.power(dist.min(axis=0).sum(),2) + \
+# 					np.power(dist.min(axis=1).sum(),2))
+
 
 def hausdorff_distance(P, Q, **kwargs):
 	if not isinstance(P, np.ndarray):
@@ -544,6 +561,44 @@ def MultiMatch(matlab_engine, P, Q, height, width, check=False, **kwargs):
 	except Exception as e:
 		print(e)
 		return [np.nan, np.nan, np.nan, np.nan, np.nan]
+
+
+
+# def MultiMatch(matlab_engine, P, Q, height, width, check=False, **kwargs):
+# 	"""
+# 		works only if you have matlab & matlab API installed
+
+# 		1 )
+# 			cd MATLAB_ROOT/extern/engines/python/
+# 			sudo python setup.py install
+
+# 	"""
+# 	try:
+
+# 		P = np.array(P, dtype=np.float32)
+# 		Q = np.array(Q, dtype=np.float32)
+# 		if P.shape[1] == 2:
+# 			P = np.hstack([P,  np.random.rand(P.shape[0],1)])
+# 		if Q.shape[1] == 2:
+# 			Q = np.hstack([Q,  np.random.rand(Q.shape[0],1)])
+
+# 		# Convert to vectors
+
+
+# 		# Simplification
+
+
+# 		# alignment.
+
+
+# 		# Do comparison.
+
+
+# 		return matlab_engine.doComparison(P,Q, size, stdout=StringIO())
+# 		# return np.array(result).squeeze()
+# 	except Exception as e:
+# 		print(e)
+# 		return [np.nan, np.nan, np.nan, np.nan, np.nan]
 
 
 
