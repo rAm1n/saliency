@@ -207,10 +207,10 @@ class SaliencyDataset(object):
 
 				for user in data[users_idx]:
 					user = np.array(user)
-					mask = np.isnan(user).all(axis=1)
-					user = user[~mask]
 					if user.size == 0:
 						continue
+					mask = np.isnan(user).all(axis=1)
+					user = user[~mask]
 					if 'percentile' in kargs:
 						if kargs['percentile']:
 							_sample = user[:,:2] / img['img_size'][::-1]

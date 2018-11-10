@@ -25,6 +25,37 @@ except ImportError:
 	print("some function won't work without matlab & matlab API installed")
 
 
+
+STATIC_MTERICS = [
+	AUC,
+	SAUC,
+	NSS,
+	CC,
+	KLdiv,
+	IG,
+	SIM,
+	EMD,
+]
+
+
+SEQNEUTAL_METRICS = [
+	euclidean_distance,
+	mannan_distance,
+	eyenalysis,
+	levenshtein_distance,
+	scanmatch,
+	hausdorff_distance,
+	frechet_distance,
+	DTW,
+	TDE,
+	multi_match,
+	REC,
+	DET,
+	LAM,
+	CORM,
+]
+
+
 def make_engine():
 	"""
 			works only if you have matlab & matlab API installed
@@ -353,25 +384,64 @@ def euclidean_distance(P,Q, **kwargs):
 
 
 
-def mannan_distance(P, Q, **kwargs):
+def mannan_distance(P,Q, height, width, PR=None, QR=None, **kwargs):
 	"""
-		Mannan Linear distance.
+		Linear Distance
+		https://link.springer.com/content/pdf/10.3758%2Fs13428-014-0550-3.pdf
 
+	 	PR and QR are two random scanpaths
 	"""
-	P = np.array(P, dtype=np.float32)
-	Q = np.array(Q, dtype=np.float32)
-	dist = np.zeros((P.shape[0], Q.shape[0]))
 
-	for idx_1, fix_1 in np.ndenumerate(P):
-		for idx_2, fix_2 in np.ndenumerate(Q):
-			dist[idx_1, idx_2] = euclidean(fix_1, fix_2)
+	if not isinstance(P, np.ndarray):
+		P = np.array(P, dtype=np.float32)
+	elif P.dtype != np.float32:
+		P = P.astype(np.float32)
 
-	return (1 / (P.shape[0] + Q.shape[0])) * \
-				(np.power(dist.min(axis=0).sum(),2) + \
-					np.power(dist.min(axis=1).sum(),2))
+	if not isinstance(Q, np.ndarray):
+		Q = np.array(Q, dtype=np.float32)
+	elif Q.dtype != np.float32:
+		Q = Q.astype(np.float32)
+
+	if (PR is None):
+		PR = np.random.rand((P.shape[0], 2)) * (width, height)
+	elif not isinstance(PR, np.ndarray):
+		PR = np.array(PR, dtype=np.float32)
+
+	if (QR is None):
+		QR = np.random.rand((Q.shape[0], 2)) * (width, height)
+	elif not isinstance(QR, np.ndarray):
+		QR = np.array(QR, dtype=np.float32)
+
+	def D(P, Q, height, width):
+		"""
+
+		"""
+		fix_count_p = P.shape[0]
+		fix_count_q = Q.shape[0]
+		dist = np.zeros((fix_count_p, fix_count_q))
+		for i in range(fix_count_p):
+			for j in range(fix_count_q):
+				dist[i,j] = euclidean(P[i], Q[j])
+
+		d1i = np.min(dist, axis=1)
+		d2j = np.min(dist, axis=0)
+
+		result = (fix_count_q * np.power(d2j,2).sum()) + \
+						(fix_count_p * np.power(d1i,2).sum())
+
+		mean = 2 * fix_count_p * fix_count_q * (height**2 + width**2)
+
+		return result / mean
+
+	d = D(P, height, width, Xbins, Ybins)
+	dr = D(Q, height, width, Xbins, Ybins)
+
+	return 1 - (100 * ( d / dr))
 
 
-# def eyenalysis(P, Q, **kwargs):
+
+
+# def mannan_distance(P, Q, **kwargs):
 # 	"""
 # 		Mannan Linear distance.
 
@@ -387,6 +457,86 @@ def mannan_distance(P, Q, **kwargs):
 # 	return (1 / (P.shape[0] + Q.shape[0])) * \
 # 				(np.power(dist.min(axis=0).sum(),2) + \
 # 					np.power(dist.min(axis=1).sum(),2))
+
+
+def eyenalysis(P, Q, **kwargs):
+	"""
+		eyenalysis Linear distance.
+
+	"""
+	P = np.array(P, dtype=np.float32)
+	Q = np.array(Q, dtype=np.float32)
+	dist = np.zeros((P.shape[0], Q.shape[0]))
+
+	for idx_1, fix_1 in np.ndenumerate(P):
+		for idx_2, fix_2 in np.ndenumerate(Q):
+			dist[idx_1, idx_2] = euclidean(fix_1, fix_2)
+
+	return (1 / max(P.shape[0] + Q.shape[0])) * \
+				(dist.min(axis=0).sum() + dist.min(axis=1).sum())
+
+def levenshtein_distance(P,Q, height, width, Xbins=12, Ybins = 8, **kwargs):
+	"""
+		Levenshtein distance
+	"""
+
+	P, P_num = _scanpath_to_string(P, height, width, Xbins, Ybins, 0)
+	Q, Q_num = _scanpath_to_string(Q, height, width, Xbins, Ybins, 0)
+
+	return editdistance.eval(P, Q)
+
+
+def ScanMatch(P, Q, height, width, Xbins=12, Ybins=8, Tbins=0,
+				SubMatrix=None, threshold=3.5, GapValue=0 ,**kwargs):
+	"""
+		ScanMatch
+		You need to creat ScanMatchInfo file before hand in the matlab yourself.
+
+		for more information have look at:
+			https://seis.bristol.ac.uk/~psidg/ScanMatch/
+
+	"""
+
+	def _create_sub_matrix(Xbins, Ybins, threshold):
+
+		mat = np.zeros((Xbins * Ybins, Xbins * Ybins))
+		idx_i = 0
+		idx_j = 0
+
+		for i in range(Ybins):
+			for j in range(Xbins):
+				for ii in range(Ybins):
+					for jj in range(Xbins):
+						mat[idx_i, idx_j] = np.sqrt((j-jj)**2 + (i-ii)**2)
+						idx_i +=1
+				idx_i =0
+				idx_j += 1
+
+		max_sub = mat.max()
+		return np.abs(mat - max_sub) - (max_sub - threshold)
+
+	try:
+
+		P = np.array(P, dtype=np.float32)
+		Q = np.array(Q, dtype=np.float32)
+
+		P, P_num = scanpath_to_string(P, height, width, Xbins, Ybins, Tbins)
+		Q, Q_num = scanpath_to_string(Q, height, width, Xbins, Ybins, Tbins)
+
+		if SubMatrix is None:
+			SubMatrix = _create_sub_matrix(Xbins, Ybins, threshold)
+
+		score = global_align(P_num, Q_num, SubMatrix, GapValue)
+		scale = SubMatrix.max() * max(len(P_num), len(Q_num))
+
+		return score / scale
+
+	except Exception as e:
+		print(e)
+		return np.nan
+
+
+
 
 
 def hausdorff_distance(P, Q, **kwargs):
@@ -422,7 +572,7 @@ def frechet_distance(P, Q, **kwargs):
 		if ca[i,j] > -1:
 			return ca[i,j]
 		elif i == 0 and j == 0:
-			ca[i,j] = euc_dist(P[0],Q[0])
+			ca[i,j] = euclidean(P[0],Q[0])
 		elif i > 0 and j == 0:
 			ca[i,j] = max(_c(ca,i-1,0,P,Q), euclidean(P[i],Q[0]))
 		elif i == 0 and j > 0:
@@ -437,18 +587,6 @@ def frechet_distance(P, Q, **kwargs):
 	ca = np.ones((len(P),len(Q)))
 	ca = np.multiply(ca,-1)
 	return _c(ca,len(P)-1,len(Q)-1,P,Q)
-
-
-
-def levenshtein_distance(P,Q, height, width, Xbins=12, Ybins = 8, **kwargs):
-	"""
-		Levenshtein distance
-	"""
-
-	P, P_num = _scanpath_to_string(P, height, width, Xbins, Ybins, 0)
-	Q, Q_num = _scanpath_to_string(Q, height, width, Xbins, Ybins, 0)
-
-	return editdistance.eval(P, Q)
 
 
 
@@ -528,7 +666,7 @@ def TDE(
 
 
 
-def MultiMatch(matlab_engine, P, Q, height, width, check=False, **kwargs):
+def multi_match(matlab_engine, P, Q, height, width, check=False, **kwargs):
 	"""
 		works only if you have matlab & matlab API installed
 
@@ -599,116 +737,6 @@ def MultiMatch(matlab_engine, P, Q, height, width, check=False, **kwargs):
 # 	except Exception as e:
 # 		print(e)
 # 		return [np.nan, np.nan, np.nan, np.nan, np.nan]
-
-
-
-
-def ScanMatch(P, Q, height, width, Xbins=12, Ybins=8, Tbins=0,
-				SubMatrix=None, threshold=3.5, GapValue=0 ,**kwargs):
-	"""
-		ScanMatch
-		You need to creat ScanMatchInfo file before hand in the matlab yourself.
-
-		for more information have look at:
-			https://seis.bristol.ac.uk/~psidg/ScanMatch/
-
-	"""
-
-	def _create_sub_matrix(Xbins, Ybins, threshold):
-
-		mat = np.zeros((Xbins * Ybins, Xbins * Ybins))
-		idx_i = 0
-		idx_j = 0
-
-		for i in range(Ybins):
-			for j in range(Xbins):
-				for ii in range(Ybins):
-					for jj in range(Xbins):
-						mat[idx_i, idx_j] = np.sqrt((j-jj)**2 + (i-ii)**2)
-						idx_i +=1
-				idx_i =0
-				idx_j += 1
-
-		max_sub = mat.max()
-		return np.abs(mat - max_sub) - (max_sub - threshold)
-
-	try:
-
-		P = np.array(P, dtype=np.float32)
-		Q = np.array(Q, dtype=np.float32)
-
-		P, P_num = scanpath_to_string(P, height, width, Xbins, Ybins, Tbins)
-		Q, Q_num = scanpath_to_string(Q, height, width, Xbins, Ybins, Tbins)
-
-		if SubMatrix is None:
-			SubMatrix = _create_sub_matrix(Xbins, Ybins, threshold)
-
-		score = global_align(P_num, Q_num, SubMatrix, GapValue)
-		scale = SubMatrix.max() * max(len(P_num), len(Q_num))
-
-		return score / scale
-
-	except Exception as e:
-		print(e)
-		return np.nan
-
-
-
-
-def linear_distance(P,Q, height, width, PR=None, QR=None, **kwargs):
-	"""
-		Linear Distance
-		https://link.springer.com/content/pdf/10.3758%2Fs13428-014-0550-3.pdf
-
-	 	PR and QR are two random scanpaths
-	"""
-
-	if not isinstance(P, np.ndarray):
-		P = np.array(P, dtype=np.float32)
-	elif P.dtype != np.float32:
-		P = P.astype(np.float32)
-
-	if not isinstance(Q, np.ndarray):
-		Q = np.array(Q, dtype=np.float32)
-	elif Q.dtype != np.float32:
-		Q = Q.astype(np.float32)
-
-	if (PR is None):
-		PR = np.random.rand((8, 2)) * (width, height)
-	elif not isinstance(PR, np.ndarray):
-		PR = np.array(PR, dtype=np.float32)
-
-	if (QR is None):
-		QR = np.random.rand((8, 2)) * (width, height)
-	elif not isinstance(QR, np.ndarray):
-		QR = np.array(QR, dtype=np.float32)
-
-	def D(P, Q, height, width):
-		"""
-
-		"""
-		fix_count_p = P.shape[0]
-		fix_count_q = Q.shape[0]
-		dist = np.zeros((fix_count_p, fix_count_q))
-		for i in range(fix_count_p):
-			for j in range(fix_count_q):
-				dist[i,j] = euclidean(P[i], Q[j])
-
-		d1i = np.min(dist, axis=1)
-		d2j = np.min(dist, axis=0)
-
-		result = (fix_count_q * np.power(d2j,2).sum()) + \
-						(fix_count_p * np.power(d1i,2).sum())
-
-		mean = 2 * fix_count_p * fix_count_q * (height**2 + width**2)
-
-		return result / mean
-
-	d = D(P, height, width, Xbins, Ybins)
-	dr = D(Q, height, width, Xbins, Ybins)
-
-	return 1 - (100 * ( d / dr))
-
 
 
 
