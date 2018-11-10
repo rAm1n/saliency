@@ -1,4 +1,4 @@
-from metrics import *
+from .metrics import *
 
 STATIC_MTERICS = [
 	AUC,
@@ -22,11 +22,11 @@ SEQUENTIAL_METRICS = [
 	frechet_distance,
 	DTW,
 	TDE,
-	multi_match,
 	REC,
 	DET,
 	LAM,
 	CORM,
+	multi_match
 ]
 
 

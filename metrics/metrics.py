@@ -59,7 +59,7 @@ def make_engine():
 			z.extractall('matlab/')
 
 		eng.addpath(mm_path)
-		eng.cd(sm_path)
+		#eng.cd(sm_path)
 
 		return eng
 	except Exception as e:
@@ -375,12 +375,12 @@ def mannan_distance(P,Q, height, width, PR=None, QR=None, **kwargs):
 		Q = Q.astype(np.float32)
 
 	if (PR is None):
-		PR = np.random.rand((P.shape[0], 2)) * (width, height)
+		PR = np.random.rand(P.shape[0], 2) * (width, height)
 	elif not isinstance(PR, np.ndarray):
 		PR = np.array(PR, dtype=np.float32)
 
 	if (QR is None):
-		QR = np.random.rand((Q.shape[0], 2)) * (width, height)
+		QR = np.random.rand(Q.shape[0], 2) * (width, height)
 	elif not isinstance(QR, np.ndarray):
 		QR = np.array(QR, dtype=np.float32)
 
