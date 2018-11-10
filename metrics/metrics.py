@@ -26,34 +26,6 @@ except ImportError:
 
 
 
-STATIC_MTERICS = [
-	AUC,
-	SAUC,
-	NSS,
-	CC,
-	KLdiv,
-	IG,
-	SIM,
-	EMD,
-]
-
-
-SEQNEUTAL_METRICS = [
-	euclidean_distance,
-	mannan_distance,
-	eyenalysis,
-	levenshtein_distance,
-	scanmatch,
-	hausdorff_distance,
-	frechet_distance,
-	DTW,
-	TDE,
-	multi_match,
-	REC,
-	DET,
-	LAM,
-	CORM,
-]
 
 
 def make_engine():
@@ -68,15 +40,15 @@ def make_engine():
 		eng = matlab.engine.start_matlab()
 
 		# downloading ScanMatch if it doesn't exist
-		sm_path = 'matlab/ScanMatch/'
-		mm_path = 'matlab/MultiMatchToolbox/'
-		if not os.path.isdir(sm_path):
-			os.makedirs(sm_path)
-			url = 'https://seis.bristol.ac.uk/~psidg/ScanMatch/ScanMatch.zip'
-			print("downloading ScanMatch from the authers' website")
-			r = requests.get(url, stream=True)
-			z = zipfile.ZipFile(io.BytesIO(r.content))
-			z.extractall(sm_path)
+		sm_path = os.path.join(os.path.dirname(__file__), 'matlab/ScanMatch/')
+		mm_path = os.path.join(os.path.dirname(__file__), 'matlab/MultiMatchToolbox/')
+#		if not os.path.isdir(sm_path):
+#			os.makedirs(sm_path)
+#			url = 'https://seis.bristol.ac.uk/~psidg/ScanMatch/ScanMatch.zip'
+#			print("downloading ScanMatch from the authers' website")
+#			r = requests.get(url, stream=True)
+#			z = zipfile.ZipFile(io.BytesIO(r.content))
+#			z.extractall(sm_path)
 
 		if not os.path.isdir(mm_path):
 			os.makedirs(mm_path)
@@ -486,7 +458,7 @@ def levenshtein_distance(P,Q, height, width, Xbins=12, Ybins = 8, **kwargs):
 	return editdistance.eval(P, Q)
 
 
-def ScanMatch(P, Q, height, width, Xbins=12, Ybins=8, Tbins=0,
+def scan_match(P, Q, height, width, Xbins=12, Ybins=8, Tbins=0,
 				SubMatrix=None, threshold=3.5, GapValue=0 ,**kwargs):
 	"""
 		ScanMatch
