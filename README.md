@@ -152,22 +152,25 @@ Eye-tracking data and specifically scanpath always have errors and out of bounda
 #### Sequential Metrics
 
 
-|         Metrics       |Citation                          |Extra note                         |
-|----------------|-------------------------------|-----------------------------|
-|euclidean_distance          |            |           |
-|mannan_distance          |            |           |
-|levenshtein_distance          | | |
-|ScanMatch          |  [ScanMatch: A Novel Method for Comparing Fixation Sequences.](https://seis.bristol.ac.uk/~psidg/ScanMatch/CMTG2010.pdf) | |
-|linear_distance | | |
-|REC | | |
-|DET | | |
-|LAM | | |
-|CORM | | |
-|hausdorff_distance          || |
-|frechet_distance          || |
-|DTW          | |  |
-|TDE          | [Simulating human saccadic scanpaths on natural images](https://ieeexplore.ieee.org/document/5995423/) | Adopted from [Fixaton](https://github.com/dariozanca/FixaTons)|
-MultiMatch          |[A Vector-based, Multidimensional Scanpath Similarity Measure.](https://dl.acm.org/citation.cfm?id=1743718)| |
+
+|    | Metric               | Origin |
+|----|----------------------|----------|
+| 1  | Euclidean distance   |          |
+| 2  | Mannan distance      |  [The relationship between the locations of spatial features.](https://www.ncbi.nlm.nih.gov/pubmed/9061830)        |
+| 3  | Eyeanalysis          | [A simple way to estimate similarity between pairs of eye movement](https://bop.unibe.ch/JEMR/article/view/2326)        |
+| 4  | Levenshtein distance |    [Algorithms for defining visual regions-of-interest](https://ieeexplore.ieee.org/document/877520)      |
+| 5  | ScanMatch            |  [ScanMatch: A Novel Method for Comparing Fixation Sequences.](https://seis.bristol.ac.uk/~psidg/ScanMatch/CMTG2010.pdf)        |
+| 6  | Hausdorff distance   |    [Comparing images using the Hausdorff distance](https://ieeexplore.ieee.org/document/232073)      |
+| 7  | Frechet distance     |   [Computing discrete Fréchet distance](http://www.kr.tuwien.ac.at/staff/eiter/et-archive/cdtr9464.pdf)       |
+| 8  | Dynamic time warp    |   [Using dynamic time warping to find patterns in time series](http://www.aaai.org/Papers/Workshops/1994/WS-94-03/WS94-03-031.pdf)       |
+| 9  | Time delay embedding | [Simulating human saccadic scanpaths on natural images](https://ieeexplore.ieee.org/document/5995423/) | Adopted from [Fixaton](https://github.com/dariozanca/FixaTons)|         |
+| 10 | MultiMatch (5)       | [A Vector-based, Multidimensional Scanpath Similarity Measure.](https://dl.acm.org/citation.cfm?id=1743718)         |
+| 11 | Recurrence           |  [Recurrence quantification analysis of eye movements](https://link.springer.com/article/10.3758/s13428-012-0299-5)       |
+| 12 | Determinism          |  [Recurrence quantification analysis of eye movements](https://link.springer.com/article/10.3758/s13428-012-0299-5)        |
+| 13 | Laminarity           |  [Recurrence quantification analysis of eye movements](https://link.springer.com/article/10.3758/s13428-012-0299-5)        |
+| 14 | CORM                 |   [Recurrence quantification analysis of eye movements](https://link.springer.com/article/10.3758/s13428-012-0299-5)       |
+
+
 
 **Note**: To make things run smoother, scanpaths has already been preprocessed and stored on dropbox. If you own one of the datasets and you don't like your data to be included in this package, please send a short message to  *fahimi72 At gmail* and it will be taken care of. we do not own any of the data and The copyrights belongs to the original publisher of the datasets.
 
