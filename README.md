@@ -1,12 +1,19 @@
 # Saliency Datasets and Metrics
 
+**UPDATE**: An arxiv paper will be posted soon to reference metrics and datasets in this package.
 
-This repository contains an API for saliency prediction datasets along with most common evaluation metrics. The code will download required files from the website of the original publisher and will prepare everything for easier use.
+
+---
+
+
+
+
+This repository contains an API for saliency prediction datasets along with most common evaluation metrics. The code will download required files from the website of the original publisher and will prepare everything for easier use. 
 
 
 
 ### **What do I need?**
- -   Python (2.7, 3.4, 3.5, 3.6)
+ -   Python (2.7, 3.4+)
  -   Python package manager (pip)
  -   Matlab (optional - used in some of the metrics.)
 
@@ -129,14 +136,17 @@ Eye-tracking data and specifically scanpath always have errors and out of bounda
 #### Static Metrics
 
 
-|         Metrics       |Citation                          |Extra note                         |
-|----------------|-------------------------------|-----------------------------|
-|AUC | |           |
-|SAUC  |  ||
-|NSS          |  |            |
-|CC          |  |            |                                                                                                                                |KLdiv          | |     |
-|SIM          | |     |
-|IG          | |     |
+
+
+|         Metrics       |Citation                          |                          
+|----------------|-------------------------------|
+|AUC | [Saliency and Human Fixations: State-of-the-Art and Study of Comparison Metrics](https://ieeexplore.ieee.org/document/6751253) |
+|SAUC  | [SUN: A Bayesian framework for saliency using natural statistics](https://jov.arvojournals.org/article.aspx?articleid=2297284) |
+|NSS          | [Components of bottom-up gaze allocation in natural scenes](https://jov.arvojournals.org/article.aspx?articleid=2132474) |          
+|CC          | **Pearson's linear coefficient** |      
+|KLdiv          | |   
+|SIM          | |   
+|IG       | [Information-theoretic model comparison unifies saliency metrics](https://www.pnas.org/content/112/52/16054)|   
 
 
 #### Sequential Metrics
@@ -147,7 +157,7 @@ Eye-tracking data and specifically scanpath always have errors and out of bounda
 |euclidean_distance          |            |           |
 |mannan_distance          |            |           |
 |levenshtein_distance          | | |
-|ScanMatch          | F. Cristino, S. Mathôt, J. Theeuwes & I. D. Gilchrist. [ScanMatch: A Novel Method for Comparing Fixation Sequences.](https://seis.bristol.ac.uk/~psidg/ScanMatch/CMTG2010.pdf) | |
+|ScanMatch          |  [ScanMatch: A Novel Method for Comparing Fixation Sequences.](https://seis.bristol.ac.uk/~psidg/ScanMatch/CMTG2010.pdf) | |
 |linear_distance | | |
 |REC | | |
 |DET | | |
@@ -156,8 +166,8 @@ Eye-tracking data and specifically scanpath always have errors and out of bounda
 |hausdorff_distance          || |
 |frechet_distance          || |
 |DTW          | |  |
-|TDE          |Wei Wang, Cheng Chen, Yizhou Wang. [Simulating human saccadic scanpaths on natural images](https://ieeexplore.ieee.org/document/5995423/) | Adopted from [Fixaton](https://github.com/dariozanca/FixaTons)|
-MultiMatch          |Jarodzka, H., Holmqvist, K., & Nystrom, M. [A Vector-based, Multidimensional Scanpath Similarity Measure.](https://dl.acm.org/citation.cfm?id=1743718)| |
+|TDE          | [Simulating human saccadic scanpaths on natural images](https://ieeexplore.ieee.org/document/5995423/) | Adopted from [Fixaton](https://github.com/dariozanca/FixaTons)|
+MultiMatch          |[A Vector-based, Multidimensional Scanpath Similarity Measure.](https://dl.acm.org/citation.cfm?id=1743718)| |
 
 **Note**: To make things run smoother, scanpaths has already been preprocessed and stored on dropbox. If you own one of the datasets and you don't like your data to be included in this package, please send a short message to  *fahimi72 At gmail* and it will be taken care of. we do not own any of the data and The copyrights belongs to the original publisher of the datasets.
 
