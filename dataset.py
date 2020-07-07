@@ -1,8 +1,9 @@
 
 
 
+
 import json
-from scipy.misc import imread
+from imageio import imread
 from PIL import Image
 import numpy as np
 import zipfile
@@ -160,7 +161,7 @@ class SaliencyDataset(object):
 			if (self.url.item()[key][-3:] == 'npz') and ( getattr(self, key) is None):
 				npz_file = os.path.join(sub_dir, '{0}.npz'.format(key))
 				with open(npz_file, 'rb') as f_handle:
-					self.__setattr__(key, np.load(f_handle, encoding='latin1'))
+					self.__setattr__(key, np.load(f_handle, allow_pickle=True, encoding='latin1'))
 			else:
 				pass
 				# to be implemented.
