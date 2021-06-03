@@ -1,22 +1,23 @@
 # Saliency Datasets and Metrics
 
 
-**UPDATE**: An arxiv paper will be posted soon to reference metrics and datasets in this package.
+> **On metrics for measuring scanpath similarity**<br>
+> [Ramin Fahimi](https://www.raminfahimi.com), [Neil D.B Bruce](https://socs.uoguelph.ca/~brucen/)<br>
+> https://link.springer.com/article/10.3758/s13428-020-01441-0
 
 
 ---
 
 
 
-
-This repository contains an API for saliency prediction datasets along with most common evaluation metrics. The code will download required files from the website of the original publisher and will prepare everything for easier use. 
+This repository contains an API for saliency prediction datasets along with most common evaluation metrics. This code will download required files from the website of the original publisher of datasets.
 
 
 
 ### **What do I need?**
  -   Python (2.7, 3.4+)
  -   Python package manager (pip)
- -   Matlab (optional - used in some of the metrics.)
+ -   Matlab (optional - required for some of the metrics.)
 
 
 ### **Getting started**
@@ -173,6 +174,6 @@ Eye-tracking data and specifically scanpath always have errors and out of bounda
 
 
 
-**Note**: To make things run smoother, scanpaths has already been preprocessed and stored on dropbox. If you own one of the datasets and you don't like your data to be included in this package, please send a short message to  *fahimi72 At gmail* and it will be taken care of. we do not own any of the data and The copyrights belongs to the original publisher of the datasets.
+**Note**: To make things run smoother, scanpaths has already been preprocessed and stored on dropbox. If you own one of the datasets and you don't like your data to be included in this package, please send a short message to  *fahimi72 At gmail* and it will be taken care of. we do not own any of the data and the rights belong to the original publisher of the datasets. Please make sure to cite the appropriate paper if you are using them.
 
 
